@@ -79,7 +79,18 @@ async function submitAuth(){
       return;
     }
     closeModals();
-    await loadMe();
+    if(d.user){
+      me=d.user;
+      $('authBtn').textContent='👤 Hồ sơ';
+      $('authBtn').onclick=toggleAccount;
+      $('balance').textContent=Number(me.balance||0).toLocaleString('vi-VN');
+      $('walletBalance').textContent=money(me.balance);
+      $('meName').textContent=me.username;
+      $('accountSection').classList.remove('hidden');
+      await loadAccountData(currentTab);
+    }else{
+      await loadMe();
+    }
   }catch(e){
     $('authMsg').className='bad';
     $('authMsg').textContent=e.message;
@@ -127,12 +138,10 @@ async function buy(productId){
       body:JSON.stringify({productId})
     });
     await loadMe();
-    alert('Mua thành công!
-Tài khoản: '+(d.account||'-'));
+    alert('Mua thành công!\nTài khoản: '+(d.account||'-'));
   }catch(e){
     if(e.message.includes('Số dư')){
-      if(confirm(e.message+'
-Nạp tiền ngay?')) openWallet();
+      if(confirm(e.message+'\nNạp tiền ngay?')) openWallet();
     }else alert(e.message);
   }
 }
