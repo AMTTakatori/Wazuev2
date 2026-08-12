@@ -1,11 +1,8 @@
 {
-  "name": "wazue-shop-auto",
-  "version": "1.0.0",
+  "name": "wazue-store",
+  "version": "2.0.0",
+  "private": true,
   "type": "module",
-  "dependencies": {
-    "@supabase/supabase-js": "^2.39.0"
-  },
-  "engines": {
-    "node": ">=20"
-  }
+  "engines": { "node": ">=20" },
+  "dependencies": { "@supabase/supabase-js": "^2.57.0" }
 }
