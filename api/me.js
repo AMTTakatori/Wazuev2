@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   try {
     const supabase = db();
 
-    // Cookie được tạo bởi auth.js
+    // auth.js tạo cookie tên này
     const token = req.cookies?.wazue_session;
 
     if (!token) {
@@ -21,21 +21,20 @@ export default async function handler(req, res) {
       });
     }
 
-    // auth.js lưu token_hash nên /me cũng phải hash token trước khi tìm
-    const hash = tokenHash(token);
+    // auth.js lưu token_hash, không lưu token gốc
+    const token_hash = tokenHash(token);
 
-    const { data: session, error: sessionErr } = await supabase
+    const { data: session, error: sessionError } = await supabase
       .from('sessions')
       .select('username, expires_at')
-      .eq('token_hash', hash)
+      .eq('token_hash', token_hash)
       .maybeSingle();
 
-    if (sessionErr) {
-      console.error('Session error:', sessionErr);
-
+    if (sessionError) {
+      console.error('Session error:', sessionError);
       return res.status(500).json({
         authenticated: false,
-        message: 'Không thể kiểm tra session'
+        message: 'Lỗi kiểm tra session'
       });
     }
 
@@ -46,7 +45,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Kiểm tra hạn session
+    // Kiểm tra session hết hạn
     if (
       session.expires_at &&
       new Date(session.expires_at).getTime() <= Date.now()
@@ -54,7 +53,7 @@ export default async function handler(req, res) {
       await supabase
         .from('sessions')
         .delete()
-        .eq('token_hash', hash);
+        .eq('token_hash', token_hash);
 
       return res.status(401).json({
         authenticated: false,
@@ -62,18 +61,18 @@ export default async function handler(req, res) {
       });
     }
 
-    const { data: user, error: userErr } = await supabase
+    // Lấy user
+    const { data: user, error: userError } = await supabase
       .from('users')
       .select('id, username, balance, created_at')
       .eq('username', session.username)
       .maybeSingle();
 
-    if (userErr) {
-      console.error('User error:', userErr);
-
+    if (userError) {
+      console.error('User error:', userError);
       return res.status(500).json({
         authenticated: false,
-        message: 'Không thể lấy thông tin tài khoản'
+        message: 'Lỗi lấy thông tin tài khoản'
       });
     }
 
@@ -95,7 +94,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Lỗi /api/me:', error);
+    console.error('API /me error:', error);
 
     return res.status(500).json({
       authenticated: false,
