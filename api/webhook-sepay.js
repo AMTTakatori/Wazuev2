@@ -1,77 +1,78 @@
-import { createClient } from '@supabase/supabase-js';
+import crypto from 'node:crypto';
+import { db } from './_auth.js';
 
-const PRICE_TO_DAYS = {
-  7000: 1,
-  25000: 5,
-  40000: 10,
-  70000: 20,
-  100000: 30
-};
+function safeEqual(a,b){const aa=Buffer.from(String(a||''));const bb=Buffer.from(String(b||''));return aa.length===bb.length&&crypto.timingSafeEqual(aa,bb);}
+function verifyHmac(req, rawBody){
+  const secret=process.env.SEPAY_WEBHOOK_SECRET;
+  if(!secret) return false;
+  const timestamp=req.headers['x-sepay-timestamp'];
+  const signature=req.headers['x-sepay-signature'];
+  if(!timestamp||!signature) return false;
+  const ts=Number(timestamp); if(!Number.isFinite(ts)||Math.abs(Date.now()-ts*1000)>5*60*1000) return false;
+  const payload=`${timestamp}.${rawBody}`;
+  const expected=crypto.createHmac('sha256',secret).update(payload).digest('hex');
+  return safeEqual(expected,signature);
+}
+export const config = { api: { bodyParser: false } };
 
-function generateRandomString(length = 6) {
-  return Math.random().toString(36).substring(2, 2 + length);
+async function readRawBody(req){
+  const chunks=[];
+  for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk));
+  return Buffer.concat(chunks).toString('utf8');
 }
 
-async function createQlingAccount(days) {
-  const rawUser = generateRandomString(6);
-  const username = `${process.env.QLING_PREFIX}-${rawUser}`;
-  const password = `Wz@${generateRandomString(6)}`;
+export default async function handler(req,res){
+  if(req.method!=='POST') return res.status(405).json({success:false,message:'Method Not Allowed'});
+  try{
+    const raw=await readRawBody(req);
+    if(process.env.SEPAY_WEBHOOK_SECRET && !verifyHmac(req,raw)) return res.status(401).json({success:false,message:'Invalid signature'});
+    const data=JSON.parse(raw || '{}');
+    const content=String(data.content||'');
+    const amount=Number(data.transferAmount||0);
+    const txId=String(data.id||data.transactionId||data.referenceCode||'');
+    const depositMatch=content.match(/NAP[A-Z0-9]+/i);
+    const orderMatch=content.match(/WAZUE[A-Z0-9]+/i);
+    const supabase=db();
 
-  const headers = {
-    'Content-Type': 'application/json',
-    'X-Ctv-Key': process.env.QLING_CTV_KEY
-  };
-
-  const createRes = await fetch(`${process.env.QLING_BASE_URL}/api/ctv/users`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ username, password })
-  });
-
-  if (!createRes.ok) return { success: false };
-
-  const updateRes = await fetch(`${process.env.QLING_BASE_URL}/api/ctv/users/${encodeURIComponent(username)}`, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify({ plan: 1, extend_days: days, mode: "Aimdrag_Anten" })
-  });
-
-  if (updateRes.ok) {
-    return { success: true, account: `${username}|${password}` };
-  }
-  return { success: false };
-}
-
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
-
-  try {
-    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-    const data = req.body;
-    const content = data.content || "";
-    const transferAmount = Number(data.transferAmount) || 0;
-
-    const match = content.match(/WAZUE\d+/);
-    if (match) {
-      const orderCode = match[0];
-      const days = PRICE_TO_DAYS[transferAmount];
-
-      if (days) {
-        const regResult = await createQlingAccount(days);
-
-        if (regResult.success) {
-          await supabase
-            .from('orders')
-            .update({ status: 'COMPLETED', account: regResult.account })
-            .eq('order_code', orderCode);
-
-          return res.status(200).json({ success: true, account: regResult.account });
-        }
+    if(depositMatch){
+      const code=depositMatch[0].toUpperCase();
+      const {data:dep}=await supabase.from('deposits').select('*').eq('trans_code',code).eq('status','PENDING').maybeSingle();
+      if(dep && amount>=Number(dep.amount)){
+        const {data:credited,error}=await supabase.rpc('credit_deposit',{p_deposit_id:dep.id,p_transaction_id:txId||code});
+        if(error) throw error;
+        return res.status(200).json({success:true,processed:Boolean(credited)});
       }
+      return res.status(200).json({success:true,processed:false});
     }
 
-    return res.status(200).json({ success: true });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
+    if(orderMatch){
+      const code=orderMatch[0].toUpperCase();
+      const {data:order}=await supabase.from('orders').select('id,username,amount,status,product_id').eq('order_code',code).maybeSingle();
+      if(!order || order.status!=='PENDING' || amount!==Number(order.amount)) return res.status(200).json({success:true,processed:false});
+      // Product fulfillment for Qling-based products.
+      const {data:product}=await supabase.from('products').select('provider,days').eq('id',order.product_id).maybeSingle();
+      if(product?.provider==='qling'){
+        const account=await createQlingAccount(Number(product.days||1));
+        if(!account.success) return res.status(500).json({success:false,message:'Fulfillment failed'});
+        const {error}=await supabase.from('orders').update({status:'COMPLETED',account:account.account}).eq('id',order.id).eq('status','PENDING');
+        if(error) throw error;
+      }else{
+        const {error}=await supabase.from('orders').update({status:'COMPLETED'}).eq('id',order.id).eq('status','PENDING');
+        if(error) throw error;
+      }
+      return res.status(200).json({success:true,processed:true});
+    }
+    return res.status(200).json({success:true,processed:false});
+  }catch(e){console.error(e);return res.status(500).json({success:false,message:'Webhook error'});}
+}
+async function createQlingAccount(days){
+  const base=process.env.QLING_BASE_URL, key=process.env.QLING_CTV_KEY, prefix=process.env.QLING_PREFIX;
+  if(!base||!key||!prefix) return {success:false};
+  const r=Math.random().toString(36).slice(2,8); const username=`${prefix}-${r}`; const password=`Wz@${Math.random().toString(36).slice(2,8)}`;
+  const headers={'Content-Type':'application/json','X-Ctv-Key':key};
+  const c=await fetch(`${base}/api/ctv/users`,{method:'POST',headers,body:JSON.stringify({username,password})});
+  if(!c.ok) return {success:false};
+  const u=await fetch(`${base}/api/ctv/users/${encodeURIComponent(username)}`,{method:'PUT',headers,body:JSON.stringify({plan:1,extend_days:days,mode:'Aimdrag_Anten'})});
+  if(!u.ok) return {success:false};
+  return {success:true,account:`${username}|${password}`};
 }

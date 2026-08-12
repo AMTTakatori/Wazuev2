@@ -1,65 +1,16 @@
-import { createClient } from '@supabase/supabase-js';
-
-const ALLOWED_AMOUNTS = new Set([7000, 25000, 40000, 70000, 100000]);
-
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
-
-  try {
-    const amount = Number(req.body?.amount);
-
-    if (!ALLOWED_AMOUNTS.has(amount)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Gói không hợp lệ'
-      });
-    }
-
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
-      throw new Error('Thiếu SUPABASE_URL hoặc SUPABASE_KEY');
-    }
-
-    const supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_KEY
-    );
-
-    const orderCode =
-      'WAZUE' + Math.floor(100000 + Math.random() * 900000);
-
-    const { error } = await supabase.from('orders').insert([{
-      order_code: orderCode,
-      amount,
-      status: 'PENDING'
-    }]);
-
-    if (error) throw error;
-
-    const bankAcc = process.env.BANK_ACC;
-    const bankId = process.env.BANK_ID;
-
-    if (!bankAcc || !bankId) {
-      throw new Error('Thiếu BANK_ACC hoặc BANK_ID');
-    }
-
-    const qrUrl =
-      `https://qr.sepay.vn/img?bank=${encodeURIComponent(bankId)}` +
-      `&acc=${encodeURIComponent(bankAcc)}` +
-      `&template=compact&amount=${amount}` +
-      `&des=${encodeURIComponent(orderCode)}`;
-
-    return res.status(200).json({
-      success: true,
-      orderCode,
-      qrUrl
-    });
-  } catch (error) {
-    console.error('create-order:', error);
-    return res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
+import { db, requireUser } from './_auth.js';
+export default async function handler(req,res){
+  if(req.method!=='POST') return res.status(405).json({success:false,message:'Method Not Allowed'});
+  const auth=await requireUser(req); if(!auth) return res.status(401).json({success:false,message:'Chưa đăng nhập.'});
+  const amount=Number(req.body?.amount);
+  const {data:product}=await db().from('products').select('id,name,price').eq('price',amount).eq('active',true).maybeSingle();
+  if(!product) return res.status(400).json({success:false,message:'Sản phẩm không hợp lệ.'});
+  const orderCode='WAZUE'+randomCode();
+  const {error}=await db().from('orders').insert({username:auth.username,order_code:orderCode,product_id:product.id,product_name:product.name,amount,status:'PENDING'});
+  if(error) return res.status(500).json({success:false,message:'Không tạo được đơn hàng.'});
+  const bankAcc=process.env.BANK_ACC, bankId=process.env.BANK_ID;
+  if(!bankAcc||!bankId) return res.status(500).json({success:false,message:'Chưa cấu hình ngân hàng.'});
+  const qrUrl=`https://qr.sepay.vn/img?bank=${encodeURIComponent(bankId)}&acc=${encodeURIComponent(bankAcc)}&template=compact&amount=${amount}&des=${encodeURIComponent(orderCode)}`;
+  return res.status(200).json({success:true,orderCode,qrUrl,amount,product:product.name});
 }
+function randomCode(){return Math.random().toString(36).slice(2,8).toUpperCase()+Date.now().toString(36).slice(-4).toUpperCase();}

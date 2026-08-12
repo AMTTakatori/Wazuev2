@@ -1,48 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
-
-export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
-
-  try {
-    const { orderCode } = req.query;
-
-    if (!orderCode) {
-      return res.status(400).json({ success: false, message: 'Thiếu orderCode' });
-    }
-
-    const supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_KEY
-    );
-
-    const { data, error } = await supabase
-      .from('orders')
-      .select('status, account')
-      .eq('order_code', orderCode)
-      .maybeSingle();
-
-    if (error) throw error;
-
-    if (!data) {
-      return res.status(404).json({
-        success: false,
-        status: 'NOT_FOUND',
-        message: 'Không tìm thấy đơn hàng'
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      status: data.status,
-      account: data.account || null
-    });
-  } catch (error) {
-    console.error('check-order:', error);
-    return res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
+import { db, requireUser } from './_auth.js';
+export default async function handler(req,res){
+  if(req.method!=='GET') return res.status(405).json({success:false,message:'Method Not Allowed'});
+  const auth=await requireUser(req); if(!auth) return res.status(401).json({success:false,message:'Chưa đăng nhập.'});
+  const code=String(req.query?.orderCode||'');
+  const {data,error}=await db().from('orders').select('order_code,product_name,amount,status,account,created_at').eq('username',auth.username).eq('order_code',code).maybeSingle();
+  if(error) return res.status(500).json({success:false,message:'Lỗi truy vấn.'});
+  if(!data) return res.status(404).json({success:false,message:'Không tìm thấy đơn hàng.'});
+  return res.status(200).json({success:true,order:data});
 }
