@@ -39,38 +39,61 @@ export default async function handler(req, res) {
       if (session) {
         if (session.expires_at && new Date(session.expires_at).getTime() <= Date.now()) {
           await supabase.from('sessions').delete().eq('token_hash', hash);
-          return res.status(401).json({ authenticated: false, message: 'Session hết hạn' });
+          return res.status(401).json({ authenticated: false, message: 'Session đã hết hạn' });
         }
         username = session.username;
       }
     } catch (authErr) {
-      console.warn('Lỗi auth me:', authErr.message);
+      console.error('Lỗi auth me:', authErr.message);
     }
 
     if (!username) {
       return res.status(401).json({ authenticated: false, message: 'Session không hợp lệ' });
     }
 
-    // Lấy dữ liệu không phân biệt hoa thường (.ilike)
-    const [uRes, dRes, oRes, tRes] = await Promise.all([
-      supabase.from('users').select('id, username, balance, created_at').ilike('username', username).maybeSingle(),
-      supabase.from('deposits').select('*').ilike('username', username).order('created_at', { ascending: false }).limit(50),
-      supabase.from('orders').select('*').ilike('username', username).order('created_at', { ascending: false }).limit(50),
-      supabase.from('wallet_transactions').select('*').ilike('username', username).order('created_at', { ascending: false }).limit(50)
-    ]);
+    // 1. Truy vấn User bằng .eq() trước, dùng .limit(1) để chống crash khi trùng lặp
+    let { data: users } = await supabase
+      .from('users')
+      .select('id, username, balance, created_at')
+      .eq('username', username)
+      .limit(1);
 
-    if (!uRes.data) {
-      return res.status(404).json({ authenticated: false, message: 'Không tìm thấy tài khoản' });
+    // Nếu .eq() không thấy, thử tìm bằng .ilike() kèm .limit(1)
+    if (!users || users.length === 0) {
+      const ilikeRes = await supabase
+        .from('users')
+        .select('id, username, balance, created_at')
+        .ilike('username', username)
+        .limit(1);
+      users = ilikeRes.data;
     }
+
+    const user = users && users.length > 0 ? users[0] : null;
+
+    if (!user) {
+      return res.status(404).json({
+        authenticated: false,
+        message: 'Không tìm thấy tài khoản'
+      });
+    }
+
+    // 2. Lấy dữ liệu các bảng theo chuẩn tên username trong DB
+    const dbUsername = user.username;
+
+    const [dRes, oRes, tRes] = await Promise.all([
+      supabase.from('deposits').select('*').ilike('username', dbUsername).order('created_at', { ascending: false }).limit(50),
+      supabase.from('orders').select('*').ilike('username', dbUsername).order('created_at', { ascending: false }).limit(50),
+      supabase.from('wallet_transactions').select('*').ilike('username', dbUsername).order('created_at', { ascending: false }).limit(50)
+    ]);
 
     return res.status(200).json({
       authenticated: true,
       success: true,
       user: {
-        id: uRes.data.id,
-        username: uRes.data.username,
-        balance: Number(uRes.data.balance || 0),
-        created_at: uRes.data.created_at
+        id: user.id,
+        username: user.username,
+        balance: Number(user.balance || 0),
+        created_at: user.created_at
       },
       deposits: dRes.data || [],
       orders: oRes.data || [],
@@ -78,6 +101,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
+    console.error('Lỗi /api/me:', error);
     return res.status(500).json({ authenticated: false, message: error.message });
   }
 }
