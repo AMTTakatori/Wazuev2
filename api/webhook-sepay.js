@@ -1,78 +1,86 @@
-import crypto from 'node:crypto';
-import { db } from './_auth.js';
+import { createClient } from '@supabase/supabase-js';
 
-function safeEqual(a,b){const aa=Buffer.from(String(a||''));const bb=Buffer.from(String(b||''));return aa.length===bb.length&&crypto.timingSafeEqual(aa,bb);}
-function verifyHmac(req, rawBody){
-  const secret=process.env.SEPAY_WEBHOOK_SECRET;
-  if(!secret) return false;
-  const timestamp=req.headers['x-sepay-timestamp'];
-  const signature=req.headers['x-sepay-signature'];
-  if(!timestamp||!signature) return false;
-  const ts=Number(timestamp); if(!Number.isFinite(ts)||Math.abs(Date.now()-ts*1000)>5*60*1000) return false;
-  const payload=`${timestamp}.${rawBody}`;
-  const expected=crypto.createHmac('sha256',secret).update(payload).digest('hex');
-  return safeEqual(expected,signature);
-}
-export const config = { api: { bodyParser: false } };
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(200).json({ success: false, message: 'Chỉ chấp nhận POST' });
+  }
 
-async function readRawBody(req){
-  const chunks=[];
-  for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk));
-  return Buffer.concat(chunks).toString('utf8');
-}
+  try {
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+    const body = req.body || {};
 
-export default async function handler(req,res){
-  if(req.method!=='POST') return res.status(405).json({success:false,message:'Method Not Allowed'});
-  try{
-    const raw=await readRawBody(req);
-    if(process.env.SEPAY_WEBHOOK_SECRET && !verifyHmac(req,raw)) return res.status(401).json({success:false,message:'Invalid signature'});
-    const data=JSON.parse(raw || '{}');
-    const content=String(data.content||'');
-    const amount=Number(data.transferAmount||0);
-    const txId=String(data.id||data.transactionId||data.referenceCode||'');
-    const depositMatch=content.match(/NAP[A-Z0-9]+/i);
-    const orderMatch=content.match(/WAZUE[A-Z0-9]+/i);
-    const supabase=db();
+    // 1. Trích xuất thông tin từ Payload SePay (Hỗ trợ mọi dạng biến)
+    const rawContent = String(body.content || body.transactionContent || body.description || '').trim();
+    const transferAmount = Number(body.transferAmount || body.amountIn || body.amount || 0);
 
-    if(depositMatch){
-      const code=depositMatch[0].toUpperCase();
-      const {data:dep}=await supabase.from('deposits').select('*').eq('trans_code',code).eq('status','PENDING').maybeSingle();
-      if(dep && amount>=Number(dep.amount)){
-        const {data:credited,error}=await supabase.rpc('credit_deposit',{p_deposit_id:dep.id,p_transaction_id:txId||code});
-        if(error) throw error;
-        return res.status(200).json({success:true,processed:Boolean(credited)});
-      }
-      return res.status(200).json({success:true,processed:false});
+    console.log('===> SEPAY WEBHOOK INCOMING:', { rawContent, transferAmount });
+
+    if (!rawContent) {
+      return res.status(200).json({ success: true, message: 'Nội dung rỗng' });
     }
 
-    if(orderMatch){
-      const code=orderMatch[0].toUpperCase();
-      const {data:order}=await supabase.from('orders').select('id,username,amount,status,product_id').eq('order_code',code).maybeSingle();
-      if(!order || order.status!=='PENDING' || amount!==Number(order.amount)) return res.status(200).json({success:true,processed:false});
-      // Product fulfillment for Qling-based products.
-      const {data:product}=await supabase.from('products').select('provider,days').eq('id',order.product_id).maybeSingle();
-      if(product?.provider==='qling'){
-        const account=await createQlingAccount(Number(product.days||1));
-        if(!account.success) return res.status(500).json({success:false,message:'Fulfillment failed'});
-        const {error}=await supabase.from('orders').update({status:'COMPLETED',account:account.account}).eq('id',order.id).eq('status','PENDING');
-        if(error) throw error;
-      }else{
-        const {error}=await supabase.from('orders').update({status:'COMPLETED'}).eq('id',order.id).eq('status','PENDING');
-        if(error) throw error;
-      }
-      return res.status(200).json({success:true,processed:true});
+    // 2. Lấy danh sách các đơn nạp đang PENDING trong DB
+    const { data: pendingDeposits, error: depErr } = await supabase
+      .from('deposits')
+      .select('*')
+      .or('status.eq.PENDING,status.eq.pending');
+
+    if (depErr || !pendingDeposits || pendingDeposits.length === 0) {
+      return res.status(200).json({ success: true, message: 'Không có đơn PENDING' });
     }
-    return res.status(200).json({success:true,processed:false});
-  }catch(e){console.error(e);return res.status(500).json({success:false,message:'Webhook error'});}
-}
-async function createQlingAccount(days){
-  const base=process.env.QLING_BASE_URL, key=process.env.QLING_CTV_KEY, prefix=process.env.QLING_PREFIX;
-  if(!base||!key||!prefix) return {success:false};
-  const r=Math.random().toString(36).slice(2,8); const username=`${prefix}-${r}`; const password=`Wz@${Math.random().toString(36).slice(2,8)}`;
-  const headers={'Content-Type':'application/json','X-Ctv-Key':key};
-  const c=await fetch(`${base}/api/ctv/users`,{method:'POST',headers,body:JSON.stringify({username,password})});
-  if(!c.ok) return {success:false};
-  const u=await fetch(`${base}/api/ctv/users/${encodeURIComponent(username)}`,{method:'PUT',headers,body:JSON.stringify({plan:1,extend_days:days,mode:'Aimdrag_Anten'})});
-  if(!u.ok) return {success:false};
-  return {success:true,account:`${username}|${password}`};
+
+    // 3. Khớp mã chuyển khoản (Chuẩn hóa chữ hoa và xóa khoảng trắng)
+    const cleanContent = rawContent.toUpperCase().replace(/\s+/g, '');
+    const matchedDeposit = pendingDeposits.find(d => {
+      if (!d.trans_code) return false;
+      const cleanCode = d.trans_code.trim().toUpperCase();
+      return cleanContent.includes(cleanCode);
+    });
+
+    if (!matchedDeposit) {
+      return res.status(200).json({ success: true, message: 'Không tìm thấy đơn nạp khớp nội dung' });
+    }
+
+    // 4. Cập nhật đơn nạp thành COMPLETED
+    await supabase
+      .from('deposits')
+      .update({ status: 'COMPLETED' })
+      .eq('id', matchedDeposit.id);
+
+    // 5. Cộng tiền vào tài khoản User
+    const { data: user } = await supabase
+      .from('users')
+      .select('balance')
+      .eq('username', matchedDeposit.username)
+      .maybeSingle();
+
+    const currentBal = Number(user?.balance || 0);
+    const addAmount = Number(matchedDeposit.amount || transferAmount);
+    const newBal = currentBal + addAmount;
+
+    await supabase
+      .from('users')
+      .update({ balance: newBal })
+      .eq('username', matchedDeposit.username);
+
+    // 6. Lưu lịch sử giao dịch Ví
+    try {
+      await supabase.from('wallet_transactions').insert([{
+        username: matchedDeposit.username,
+        type: 'DEPOSIT',
+        amount: addAmount,
+        reference: matchedDeposit.trans_code,
+        status: 'COMPLETED'
+      }]);
+    } catch (txErr) {
+      console.warn('Ghi wallet_transactions thất bại:', txErr.message);
+    }
+
+    console.log(`SUCCESS: Đã cộng ${addAmount}đ cho ${matchedDeposit.username}`);
+    return res.status(200).json({ success: true, message: 'Duyệt đơn nạp thành công' });
+
+  } catch (err) {
+    console.error('Lỗi Webhook:', err);
+    return res.status(200).json({ success: false, error: err.message });
+  }
 }
