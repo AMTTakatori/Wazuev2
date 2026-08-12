@@ -64,7 +64,7 @@ export default async function handler(req, res) {
     // Lấy user
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, username, balance, created_at')
+      .select('username, balance, created_at')
       .eq('username', session.username)
       .maybeSingle();
 
@@ -86,7 +86,6 @@ export default async function handler(req, res) {
     return res.status(200).json({
       authenticated: true,
       user: {
-        id: user.id,
         username: user.username,
         balance: Number(user.balance || 0),
         created_at: user.created_at
