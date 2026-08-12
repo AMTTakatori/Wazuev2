@@ -56,6 +56,8 @@ async function loadProducts(){
 function openAuth(){ $('authModal').classList.remove('hidden'); }
 function closeModals(){
   document.querySelectorAll('.modal').forEach(x=>x.classList.add('hidden'));
+  // 2. Reset khung chứa QR khi đóng popup
+  $('depositResult').innerHTML = '';
   if(poll){clearInterval(poll);poll=null;}
 }
 function toggleAuth(){
@@ -153,8 +155,12 @@ async function buy(productId){
 }
 function openWallet(){
   if(!me){openAuth();return;}
+  // 1. Dọn sạch kết quả QR cũ và ô nhập tiền mỗi khi mở popup
+  $('depositResult').innerHTML = '';
+  $('depositAmount').value = '';
   $('walletModal').classList.remove('hidden');
 }
+
 async function createDeposit(){
   try{
     const amount=Number($('depositAmount').value);
