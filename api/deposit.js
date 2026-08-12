@@ -1,147 +1,102 @@
-import { db, tokenHash } from './_auth.js';
+import { createClient } from '@supabase/supabase-js';
 
-// ĐỔI DUY NHẤT DÒNG NÀY để thay đổi số tiền nạp tối thiểu.
-const MIN_DEPOSIT = 7000;
-
-// Cấu hình ngân hàng hiện tại của Wazue.
-const BANK_ACC = process.env.BANK_ACC || '';
-const BANK_ID = process.env.BANK_ID || 'MB';
-
-const COOKIE_NAME = 'wazue_session';
-
-function getCookie(req, name) {
-  const raw = req.headers?.cookie || '';
-  const found = raw
-    .split(';')
-    .map(x => x.trim())
-    .find(x => x.startsWith(name + '='));
-
-  return found ? decodeURIComponent(found.slice(name.length + 1)) : null;
-}
-
-function makeTransCode(username) {
-  const clean = String(username || 'USER')
-    .replace(/[^A-Za-z0-9]/g, '')
-    .slice(0, 10) || 'USER';
-
-  return `WZ${clean}${Date.now().toString(36).toUpperCase()}${Math.floor(1000 + Math.random() * 9000)}`;
-}
-
-function makeQrUrl(amount, transCode) {
-  if (!BANK_ACC || !BANK_ID) return null;
-
-  return `https://img.vietqr.io/image/${encodeURIComponent(BANK_ID)}-${encodeURIComponent(BANK_ACC)}-compact2.png?amount=${encodeURIComponent(amount)}&addInfo=${encodeURIComponent(transCode)}`;
+// Hàm hỗ trợ đọc Cookie trực tiếp từ Request Header
+function parseCookies(req) {
+  const list = {};
+  const rc = req.headers?.cookie;
+  if (rc) {
+    rc.split(';').forEach((cookie) => {
+      const parts = cookie.split('=');
+      list[parts.shift().trim()] = decodeURI(parts.join('='));
+    });
+  }
+  return list;
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Cache-Control', 'no-store');
-
   if (req.method !== 'POST') {
-    return res.status(405).json({
-      success: false,
-      message: 'Method Not Allowed'
-    });
+    return res.status(405).json({ success: false, message: 'Method Not Allowed' });
   }
 
   try {
-    const token = getCookie(req, COOKIE_NAME);
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+    
+    // 1. Xác thực người dùng qua Cookie phiên làm việc
+    const cookies = req.cookies || parseCookies(req);
+    const token = cookies?.wazue_session;
+    let username = req.body?.username;
 
-    if (!token) {
+    if (token && !username) {
+      try {
+        const { tokenHash } = await import('./_auth.js');
+        const hash = tokenHash(token);
+        const { data: session } = await supabase
+          .from('sessions')
+          .select('username')
+          .eq('token_hash', hash)
+          .maybeSingle();
+        if (session?.username) username = session.username;
+      } catch (authErr) {
+        console.warn('Lỗi đọc auth module:', authErr.message);
+      }
+    }
+
+    if (!username) {
       return res.status(401).json({
         success: false,
-        message: 'Vui lòng đăng nhập.'
+        message: 'Vui lòng đăng nhập để thực hiện nạp tiền.'
       });
     }
 
-    const supabase = db();
-    const hash = tokenHash(token);
-
-    const { data: session, error: sessionError } = await supabase
-      .from('sessions')
-      .select('username, expires_at')
-      .eq('token_hash', hash)
-      .maybeSingle();
-
-    if (sessionError) {
-      console.error('Session error:', sessionError);
-      return res.status(500).json({
-        success: false,
-        message: 'Lỗi kiểm tra session.'
-      });
-    }
-
-    if (!session) {
-      return res.status(401).json({
-        success: false,
-        message: 'Session không hợp lệ.'
-      });
-    }
-
-    if (
-      session.expires_at &&
-      new Date(session.expires_at).getTime() <= Date.now()
-    ) {
-      await supabase
-        .from('sessions')
-        .delete()
-        .eq('token_hash', hash);
-
-      return res.status(401).json({
-        success: false,
-        message: 'Session đã hết hạn.'
-      });
-    }
-
-    const amount = Number(req.body?.amount);
-
-    if (!Number.isInteger(amount) || amount < MIN_DEPOSIT) {
+    // 2. Kiểm tra số tiền nạp hợp lệ
+    const amount = Number(req.body?.amount || 0);
+    if (!amount || amount < 7000) {
       return res.status(400).json({
         success: false,
-        message: `Số tiền nạp tối thiểu là ${MIN_DEPOSIT.toLocaleString('vi-VN')}đ.`
+        message: 'Số tiền nạp tối thiểu là 7.000đ.'
       });
     }
 
-    const transCode = makeTransCode(session.username);
-    const qrUrl = makeQrUrl(amount, transCode);
+    // 3. Tạo mã giao dịch độc bản (Mẫu: WZ + CleanUser + RandomString)
+    const cleanUser = username.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 6);
+    const randomPart = Math.random().toString(36).substring(2, 7).toUpperCase();
+    const transCode = `WZ${cleanUser}${randomPart}`;
 
-    if (!qrUrl) {
-      return res.status(500).json({
-        success: false,
-        message: 'Chưa cấu hình BANK_ACC hoặc BANK_ID trên Vercel.'
-      });
-    }
-
-    const { error: insertError } = await supabase
-      .from('deposits')
-      .insert({
-        username: session.username,
-        amount,
+    // 4. Lưu đơn nạp vào cơ sở dữ liệu Supabase
+    const { error: dbErr } = await supabase.from('deposits').insert([
+      {
+        username: username,
         trans_code: transCode,
+        amount: amount,
         status: 'PENDING'
-      });
+      }
+    ]);
 
-    if (insertError) {
-      console.error('Deposit insert error:', insertError);
-      return res.status(500).json({
-        success: false,
-        message: 'Không thể tạo giao dịch nạp tiền.'
-      });
+    if (dbErr) {
+      console.error('Lỗi lưu đơn nạp Supabase:', dbErr);
+      return res.status(500).json({ success: false, message: 'Không thể khởi tạo đơn nạp trong DB.' });
     }
 
+    // 5. Tạo link VietQR / SePay
+    const bankId = process.env.BANK_ID || 'MB';
+    const bankAcc = process.env.BANK_ACC || '9006688668';
+    const qrUrl = `https://qr.sepay.vn/img?bank=${bankId}&acc=${bankAcc}&template=compact&amount=${amount}&des=${transCode}`;
+
+    // 6. Trả về Response đồng bộ tất cả tên biến (chống lỗi undefined ở Frontend)
     return res.status(200).json({
       success: true,
-      amount,
-      transCode,
-      qrUrl,
-      minDeposit: MIN_DEPOSIT
+      transCode: transCode,
+      trans_code: transCode,
+      code: transCode,
+      amount: amount,
+      qrUrl: qrUrl
     });
 
   } catch (error) {
-    console.error('Lỗi /api/deposit:', error);
-
+    console.error('Lỗi tại /api/deposit:', error);
     return res.status(500).json({
       success: false,
-      message: 'Lỗi máy chủ.'
+      message: 'Lỗi máy chủ: ' + error.message
     });
   }
 }
