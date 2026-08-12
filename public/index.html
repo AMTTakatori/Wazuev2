@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shop Wazue Auto - Kích Hoạt Tự Động</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #06080f;
+      --card: #0d1017;
+      --card-hover: #141820;
+      --teal: #00d4aa;
+      --teal-glow: rgba(0, 212, 170, 0.25);
+      --border: #1e2535;
+      --text: #dde4f0;
+      --muted: #6a7a99;
+      --green: #4fdb8a;
+      --red: #ff4f6d;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: -1;
+      background-image: linear-gradient(rgba(0,212,170,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,170,.03) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    header { text-align: center; margin-bottom: 40px; }
+    h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; }
+    h1 span { color: var(--teal); }
+    .subtitle { color: var(--muted); font-size: 14px; margin-top: 6px; }
+
+    .grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; max-width: 1000px; width: 100%; }
+    
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      width: 230px;
+      text-align: center;
+      transition: all 0.25s ease;
+      position: relative;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: var(--teal);
+      box-shadow: 0 8px 24px var(--teal-glow);
+      background: var(--card-hover);
+    }
+    .card h3 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    .price { font-size: 26px; font-weight: 800; color: var(--teal); margin-bottom: 18px; font-family: 'DM Mono', monospace; }
+    
+    .btn {
+      background: var(--teal);
+      color: #000;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      width: 100%;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn:hover { filter: brightness(1.15); transform: scale(1.02); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(6px);
+      display: none; align-items: center; justify-content: center;
+      z-index: 100; animation: fadeIn 0.2s ease;
+    }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 30px;
+      width: 360px;
+      text-align: center;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+    }
+    .qr-img { width: 220px; height: 220px; border-radius: 12px; margin: 16px 0; border: 2px solid var(--border); }
+    .order-code {
+      font-family: 'DM Mono', monospace;
+      font-size: 18px; color: var(--teal);
+      font-weight: bold; background: #141820;
+      padding: 8px 12px; border-radius: 8px;
+      margin: 8px 0; border: 1px dashed var(--border);
+      cursor: pointer;
+    }
+    .acc-result {
+      background: #141820;
+      border: 1px solid var(--teal);
+      padding: 14px; border-radius: 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 14px; color: #fff;
+      margin-top: 14px; word-break: break-all;
+      user-select: all;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Hệ Thống Bán Tài Khoản <span>Wazue</span></h1>
+    <p class="subtitle"><i class="fa-solid fa-bolt" style="color:var(--teal)"></i> Kích hoạt tự động 100% qua Qling Portal sau khi chuyển khoản</p>
+  </header>
+
+  <div class="grid" id="plan-grid">
+    <p style="color:var(--muted); font-size:14px;"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải danh sách gói...</p>
+  </div>
+
+  <!-- Modal Thanh Toán -->
+  <div class="modal-overlay" id="payment-modal">
+    <div class="modal">
+      <h3 id="modal-title"><i class="fa-solid fa-qrcode" style="color:var(--teal)"></i> Quét Mã QR Thanh Toán</h3>
+      
+      <div id="payment-step">
+        <img id="qr-image" src="" class="qr-img" alt="Mã QR Chuyển Khoản">
+        <p style="font-size: 12px; color: var(--muted);">Nội dung chuyển khoản (chạm để copy):</p>
+        <div class="order-code" id="order-code-txt" onclick="copyCode()">—</div>
+        <p style="font-size: 12px; color: var(--teal); margin-top: 10px;">
+          <i class="fa-solid fa-spinner fa-spin"></i> Đang chờ tiền về hệ thống...
+        </p>
+      </div>
+
+      <div id="success-step" style="display: none;">
+        <p style="color: var(--green); font-weight: 800; font-size: 20px;">
+          <i class="fa-solid fa-circle-check"></i> Thanh Toán Thành Công!
+        </p>
+        <p style="font-size: 12px; color: var(--muted); margin-top: 8px;">Tài khoản Wazue của bạn (Username|Password):</p>
+        <div class="acc-result" id="acc-txt"></div>
+      </div>
+
+      <button class="btn" style="margin-top: 20px; background: #1e2535; color: #fff;" onclick="closeModal()">Đóng Window</button>
+    </div>
+  </div>
+
+  <script>
+    let pollInterval = null;
+
+    async function loadPlans() {
+      try {
+        const res = await fetch('/api/get-plans');
+        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+        const plans = await res.json();
+        
+        document.getElementById('plan-grid').innerHTML = plans.map(p => `
+          <div class="card">
+            <h3>${p.name}</h3>
+            <div class="price">${p.amount.toLocaleString('vi-VN')}đ</div>
+            <button class="btn" onclick="buyPlan(${p.amount})">
+              <i class="fa-solid fa-cart-shopping"></i> Mua Ngay
+            </button>
+          </div>
+        `).join('');
+      } catch (err) {
+        document.getElementById('plan-grid').innerHTML = 
+          `<p style="color: var(--red); background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid var(--border);">
+            ⚠️ Không thể kết nối API danh sách gói (${err.message}).
+           </p>`;
+      }
+    }
+
+    async function buyPlan(amount) {
+      try {
+        const res = await fetch('/api/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount })
+        });
+        const data = await res.json();
+
+        if (!data.success) throw new Error(data.message || 'Lỗi tạo đơn hàng');
+
+        document.getElementById('qr-image').src = data.qrUrl;
+        document.getElementById('order-code-txt').innerText = data.orderCode;
+        document.getElementById('payment-step').style.display = 'block';
+        document.getElementById('success-step').style.display = 'none';
+        document.getElementById('payment-modal').style.display = 'flex';
+
+        if (pollInterval) clearInterval(pollInterval);
+        pollInterval = setInterval(() => checkStatus(data.orderCode), 3000);
+      } catch (err) {
+        alert('Lỗi: ' + err.message);
+      }
+    }
+
+    async function checkStatus(orderCode) {
+      try {
+        const res = await fetch(`/api/check-order?orderCode=${encodeURIComponent(orderCode)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.status === 'COMPLETED') {
+          clearInterval(pollInterval);
+          document.getElementById('payment-step').style.display = 'none';
+          document.getElementById('success-step').style.display = 'block';
+          document.getElementById('acc-txt').innerText = data.account;
+        }
+      } catch (e) {}
+    }
+
+    function copyCode() {
+      const code = document.getElementById('order-code-txt').innerText;
+      navigator.clipboard.writeText(code).then(() => alert('Đã copy nội dung chuyển khoản!'));
+    }
+
+    function closeModal() {
+      if (pollInterval) clearInterval(pollInterval);
+      document.getElementById('payment-modal').style.display = 'none';
+    }
+
+    loadPlans();
+  </script>
+</body>
+</html>
