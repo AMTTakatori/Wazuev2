@@ -1,44 +1,46 @@
-import { db, tokenHash, newToken } from './_auth.js';
+import { db, tokenHash } from './_auth.js';
 
-// ĐỔI DUY NHẤT DÒNG NÀY nếu muốn đổi mức nạp tối thiểu.
+// ĐỔI DUY NHẤT DÒNG NÀY để thay đổi số tiền nạp tối thiểu.
 const MIN_DEPOSIT = 7000;
+
+// Cấu hình ngân hàng hiện tại của Wazue.
+const BANK_ACC = process.env.BANK_ACC || '';
+const BANK_ID = process.env.BANK_ID || 'MB';
 
 const COOKIE_NAME = 'wazue_session';
 
-// Thay các biến môi trường này nếu tên cấu hình SePay của project bạn khác.
-// Không đặt secret/API key ở index.html.
-const BANK_CODE = process.env.SEPAY_BANK_CODE || process.env.BANK_CODE || '';
-const ACCOUNT_NO = process.env.SEPAY_ACCOUNT_NO || process.env.BANK_ACCOUNT_NO || '';
-const ACCOUNT_NAME = process.env.SEPAY_ACCOUNT_NAME || process.env.BANK_ACCOUNT_NAME || '';
-
 function getCookie(req, name) {
   const raw = req.headers?.cookie || '';
-  const found = raw.split(';').map(x => x.trim()).find(x => x.startsWith(name + '='));
+  const found = raw
+    .split(';')
+    .map(x => x.trim())
+    .find(x => x.startsWith(name + '='));
+
   return found ? decodeURIComponent(found.slice(name.length + 1)) : null;
 }
 
 function makeTransCode(username) {
-  const clean = String(username || 'USER').replace(/[^A-Za-z0-9]/g, '').slice(0, 10) || 'USER';
-  return `WZ${clean}${Date.now().toString(36).toUpperCase()}${Math.floor(1000 + Math.random()*9000)}`;
+  const clean = String(username || 'USER')
+    .replace(/[^A-Za-z0-9]/g, '')
+    .slice(0, 10) || 'USER';
+
+  return `WZ${clean}${Date.now().toString(36).toUpperCase()}${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
 function makeQrUrl(amount, transCode) {
-  if (!BANK_CODE || !ACCOUNT_NO) return null;
-  const params = new URLSearchParams({
-    acc: ACCOUNT_NO,
-    bank: BANK_CODE,
-    amount: String(amount),
-    des: transCode
-  });
-  if (ACCOUNT_NAME) params.set('accountName', ACCOUNT_NAME);
-  return `https://img.vietqr.io/image/${encodeURIComponent(BANK_CODE)}-${encodeURIComponent(ACCOUNT_NO)}-compact2.png?${params.toString()}`;
+  if (!BANK_ACC || !BANK_ID) return null;
+
+  return `https://img.vietqr.io/image/${encodeURIComponent(BANK_ID)}-${encodeURIComponent(BANK_ACC)}-compact2.png?amount=${encodeURIComponent(amount)}&addInfo=${encodeURIComponent(transCode)}`;
 }
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, message: 'Method Not Allowed' });
+    return res.status(405).json({
+      success: false,
+      message: 'Method Not Allowed'
+    });
   }
 
   try {
@@ -60,7 +62,13 @@ export default async function handler(req, res) {
       .eq('token_hash', hash)
       .maybeSingle();
 
-    if (sessionError) throw sessionError;
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi kiểm tra session.'
+      });
+    }
 
     if (!session) {
       return res.status(401).json({
@@ -69,7 +77,15 @@ export default async function handler(req, res) {
       });
     }
 
-    if (session.expires_at && new Date(session.expires_at).getTime() <= Date.now()) {
+    if (
+      session.expires_at &&
+      new Date(session.expires_at).getTime() <= Date.now()
+    ) {
+      await supabase
+        .from('sessions')
+        .delete()
+        .eq('token_hash', hash);
+
       return res.status(401).json({
         success: false,
         message: 'Session đã hết hạn.'
@@ -91,7 +107,7 @@ export default async function handler(req, res) {
     if (!qrUrl) {
       return res.status(500).json({
         success: false,
-        message: 'Chưa cấu hình tài khoản ngân hàng/VietQR trên server.'
+        message: 'Chưa cấu hình BANK_ACC hoặc BANK_ID trên Vercel.'
       });
     }
 
@@ -104,7 +120,13 @@ export default async function handler(req, res) {
         status: 'PENDING'
       });
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error('Deposit insert error:', insertError);
+      return res.status(500).json({
+        success: false,
+        message: 'Không thể tạo giao dịch nạp tiền.'
+      });
+    }
 
     return res.status(200).json({
       success: true,
@@ -113,8 +135,10 @@ export default async function handler(req, res) {
       qrUrl,
       minDeposit: MIN_DEPOSIT
     });
+
   } catch (error) {
     console.error('Lỗi /api/deposit:', error);
+
     return res.status(500).json({
       success: false,
       message: 'Lỗi máy chủ.'
