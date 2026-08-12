@@ -1,29 +1,228 @@
-<!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wazue Store</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>
-:root{--bg:#06080f;--card:#0d111a;--line:#20283a;--text:#eaf0f8;--muted:#8190a8;--accent:#00d4aa;--danger:#ff5d76;--warn:#ffc857}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0%,#0b2730 0,#06080f 38%);color:var(--text);font-family:Outfit,system-ui;min-height:100vh}button,input{font:inherit}.wrap{max-width:1180px;margin:auto;padding:22px}.nav{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px 0}.brand{font-size:25px;font-weight:800}.brand b{color:var(--accent)}.nav-actions{display:flex;gap:10px;align-items:center}.pill,.btn{border:1px solid var(--line);background:#111722;color:var(--text);border-radius:12px;padding:10px 14px;cursor:pointer}.btn.primary{background:var(--accent);border-color:var(--accent);color:#00130f;font-weight:800}.btn.danger{color:#fff;background:#32121a;border-color:#51202b}.hero{padding:70px 0 45px}.hero h1{font-size:clamp(38px,7vw,74px);line-height:.98;margin:0 0 15px;letter-spacing:-.04em}.hero h1 span{color:var(--accent)}.hero p{color:var(--muted);max-width:650px;font-size:17px}.section{margin:35px 0}.section h2{margin:0 0 16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.card{background:rgba(13,17,26,.88);border:1px solid var(--line);border-radius:18px;padding:20px}.product .price{font-size:25px;font-weight:800;color:var(--accent);margin:14px 0}.muted{color:var(--muted)}.hidden{display:none!important}.modal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;padding:18px;z-index:20}.modal>div{width:min(470px,100%);background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px}.modal h3{margin-top:0}.input{width:100%;padding:12px;margin:7px 0;background:#080c13;border:1px solid var(--line);border-radius:10px;color:var(--text)}.row{display:flex;gap:10px;align-items:center;justify-content:space-between}.tabs{display:flex;gap:8px;margin-bottom:12px}.tab.active{border-color:var(--accent);color:var(--accent)}.qr{width:240px;max-width:100%;border-radius:14px;background:#fff;display:block;margin:15px auto}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}.scroll{overflow:auto}.status{font-weight:700}.ok{color:var(--accent)}.bad{color:var(--danger)}.warn{color:var(--warn)}
-</style></head><body><div class="wrap"><nav class="nav"><div class="brand">WA<b>ZUE</b></div><div class="nav-actions"><button class="pill" onclick="openWallet()">💰 <span id="balance">0</span>đ</button><button class="pill" id="authBtn" onclick="openAuth()">Đăng nhập</button></div></nav>
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wazue Store</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>
+:root{--bg:#06080f;--card:#0d111a;--line:#20283a;--text:#eaf0f8;--muted:#8190a8;--accent:#00d4aa;--danger:#ff5d76;--warn:#ffc857}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0%,#0b2730 0,#06080f 38%);color:var(--text);font-family:Outfit,system-ui;min-height:100vh}button,input{font:inherit}.wrap{max-width:1180px;margin:auto;padding:22px}.nav{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px 0;position:relative}.brand{font-size:25px;font-weight:800}.brand b{color:var(--accent)}.nav-actions{display:flex;gap:10px;align-items:center}.pill,.btn{border:1px solid var(--line);background:#111722;color:var(--text);border-radius:12px;padding:10px 14px;cursor:pointer}.btn.primary{background:var(--accent);border-color:var(--accent);color:#00130f;font-weight:800}.btn.danger{color:#fff;background:#32121a;border-color:#51202b}.hero{padding:70px 0 45px}.hero h1{font-size:clamp(38px,7vw,74px);line-height:.98;margin:0 0 15px;letter-spacing:-.04em}.hero h1 span{color:var(--accent)}.hero p{color:var(--muted);max-width:650px;font-size:17px}.section{margin:35px 0}.section h2{margin:0 0 16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.card{background:rgba(13,17,26,.88);border:1px solid var(--line);border-radius:18px;padding:20px}.product .price{font-size:25px;font-weight:800;color:var(--accent);margin:14px 0}.muted{color:var(--muted)}.hidden{display:none!important}.modal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;padding:18px;z-index:20}.modal>div{width:min(470px,100%);background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px}.modal h3{margin-top:0}.input{width:100%;padding:12px;margin:7px 0;background:#080c13;border:1px solid var(--line);border-radius:10px;color:var(--text)}.row{display:flex;gap:10px;align-items:center;justify-content:space-between}.tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}.tab.active{border-color:var(--accent);color:var(--accent)}.qr{width:240px;max-width:100%;border-radius:14px;background:#fff;display:block;margin:15px auto}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;white-space:nowrap}.scroll{overflow:auto}.status{font-weight:700}.ok{color:var(--accent)}.bad{color:var(--danger)}.warn{color:var(--warn)}.profile{position:absolute;right:0;top:62px;width:300px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;z-index:10;box-shadow:0 20px 50px #0008}.profile .big{font-size:26px;font-weight:800;color:var(--accent)}.profile button{width:100%;margin-top:8px}.empty{text-align:center;padding:22px;color:var(--muted)}
+</style></head><body><div class="wrap"><nav class="nav"><div class="brand">WA<b>ZUE</b></div><div class="nav-actions"><button class="pill" onclick="openWallet()">💰 <span id="balance">0</span>đ</button><button class="pill" id="authBtn" onclick="openAuth()">Đăng nhập</button></div><div id="profile" class="profile hidden"></div></nav>
 <section class="hero"><p class="muted">DIGITAL STORE</p><h1>Mua nhanh.<br><span>Nhận tự động.</span></h1><p>Wazue Store — kiến trúc sẵn cho nhiều sản phẩm, tài khoản, license và dịch vụ.</p></section>
 <section class="section"><div class="row"><h2>Sản phẩm</h2><span class="muted" id="productCount"></span></div><div id="products" class="grid"></div></section>
-<section id="accountSection" class="section hidden"><div class="row"><h2>Tài khoản</h2><button class="btn danger" onclick="logout()">Đăng xuất</button></div><div class="grid"><div class="card"><div class="muted">Số dư</div><div style="font-size:30px;font-weight:800;color:var(--accent)" id="walletBalance">0đ</div><button class="btn primary" style="margin-top:12px" onclick="openWallet()">Nạp tiền</button></div><div class="card"><div class="muted">Tài khoản</div><div id="meName" style="font-weight:700;margin-top:8px"></div></div></div><div class="card" style="margin-top:16px"><div class="tabs"><button class="pill tab active" onclick="showTab('orders',this)">Đơn hàng</button><button class="pill tab" onclick="showTab('deposits',this)">Nạp tiền</button><button class="pill tab" onclick="showTab('tx',this)">Ví</button></div><div id="tabContent"></div></div></section></div>
-<div id="authModal" class="modal hidden"><div><div class="row"><h3 id="authTitle">Đăng nhập</h3><button class="pill" onclick="closeModals()">✕</button></div><input id="username" class="input" placeholder="Username"><input id="password" class="input" type="password" placeholder="Mật khẩu"><button class="btn primary" style="width:100%;margin-top:8px" onclick="submitAuth()">Tiếp tục</button><p id="authSwitch" class="muted" style="text-align:center;cursor:pointer" onclick="toggleAuth()">Chưa có tài khoản? Đăng ký</p><p id="authMsg" class="bad"></p></div></div>
-<div id="walletModal" class="modal hidden"><div><div class="row"><h3>Nạp tiền</h3><button class="pill" onclick="closeModals()">✕</button></div><input id="depositAmount" class="input" type="number" min="10000" step="1000" placeholder="Số tiền (tối thiểu 10.000đ)"><button class="btn primary" style="width:100%;margin-top:8px" onclick="createDeposit()">Tạo QR</button><div id="depositResult"></div></div></div>
-<div id="payModal" class="modal hidden"><div><div class="row"><h3>Thanh toán</h3><button class="pill" onclick="closeModals()">✕</button></div><p id="payName"></p><img id="payQr" class="qr"><div class="card"><div class="muted">Nội dung chuyển khoản</div><strong id="payCode"></strong><div class="muted" style="margin-top:8px">Số tiền: <span id="payAmount"></span></div></div><p id="payStatus" class="warn">Đang chờ thanh toán...</p></div></div>
+<section id="accountSection" class="section hidden"><div class="row"><h2>Tài khoản</h2><button class="btn danger" onclick="logout()">Đăng xuất</button></div><div class="grid"><div class="card"><div class="muted">Số dư</div><div class="big" id="walletBalance">0đ</div><button class="btn primary" style="margin-top:12px" onclick="openWallet()">Nạp tiền</button></div><div class="card"><div class="muted">Tài khoản</div><div id="meName" style="font-weight:700;margin-top:8px"></div><div class="muted" style="margin-top:8px">Tham gia: <span id="meCreated"></span></div></div></div><div class="card" style="margin-top:16px"><div class="tabs"><button class="pill tab active" onclick="showTab('orders',this)">🛒 Đơn hàng</button><button class="pill tab" onclick="showTab('deposits',this)">💳 Nạp tiền</button><button class="pill tab" onclick="showTab('tx',this)">💰 Giao dịch ví</button></div><div id="tabContent"></div></div></section></div>
+<div id="authModal" class="modal hidden"><div><div class="row"><h3 id="authTitle">Đăng nhập</h3><button class="pill" onclick="closeModals()">✕</button></div><input id="username" class="input" placeholder="Username" autocomplete="username"><input id="password" class="input" type="password" placeholder="Mật khẩu" autocomplete="current-password"><button class="btn primary" style="width:100%;margin-top:8px" onclick="submitAuth()">Tiếp tục</button><p id="authSwitch" class="muted" style="text-align:center;cursor:pointer" onclick="toggleAuth()">Chưa có tài khoản? Đăng ký</p><p id="authMsg" class="bad"></p></div></div>
+<div id="walletModal" class="modal hidden"><div><div class="row"><h3>Nạp tiền</h3><button class="pill" onclick="closeModals()">✕</button></div><p class="muted">Tối thiểu 10.000đ</p><input id="depositAmount" class="input" type="number" min="10000" step="1000" placeholder="Số tiền"><button class="btn primary" style="width:100%;margin-top:8px" onclick="createDeposit()">Tạo QR</button><div id="depositResult"></div></div></div>
+
 <script>
-let authMode='login', me=null, poll=null;
-const $=id=>document.getElementById(id); const money=n=>Number(n||0).toLocaleString('vi-VN')+'đ';
-async function api(url,opt={}){const r=await fetch(url,{headers:{'Content-Type':'application/json',...(opt.headers||{})},...opt});const d=await r.json().catch(()=>({success:false,message:'Server trả dữ liệu không hợp lệ'}));if(!r.ok)throw new Error(d.message||`HTTP ${r.status}`);return d}
-async function loadProducts(){try{const d=await api('/api/get-products');$('products').innerHTML=d.products.map(p=>`<article class="card product"><div class="muted">${esc(p.category)}</div><h3>${esc(p.name)}</h3><p class="muted">${esc(p.description||'')}</p><div class="price">${money(p.price)}</div><button class="btn primary" style="width:100%" onclick="buy(${p.id},${p.price})">Mua ngay</button></article>`).join('');$('productCount').textContent=d.products.length+' sản phẩm'}catch(e){$('products').innerHTML='<div class="card bad">'+esc(e.message)+'</div>'}}
-function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-function openAuth(){ $('authModal').classList.remove('hidden'); } function closeModals(){document.querySelectorAll('.modal').forEach(x=>x.classList.add('hidden'));if(poll)clearInterval(poll)} function toggleAuth(){authMode=authMode==='login'?'register':'login';$('authTitle').textContent=authMode==='login'?'Đăng nhập':'Đăng ký';$('authSwitch').textContent=authMode==='login'?'Chưa có tài khoản? Đăng ký':'Đã có tài khoản? Đăng nhập';$('authMsg').textContent=''}
-async function submitAuth(){try{const d=await api('/api/auth',{method:'POST',body:JSON.stringify({action:authMode,username:$('username').value,password:$('password').value})});if(authMode==='register'){authMode='login';toggleAuth();$('authMsg').className='ok';$('authMsg').textContent='Đăng ký thành công, hãy đăng nhập.'}else{closeModals();await loadMe()}}catch(e){$('authMsg').textContent=e.message}}
-async function loadMe(){try{const d=await api('/api/me');me=d.user;$('authBtn').textContent=me.username;$('balance').textContent=Number(me.balance).toLocaleString('vi-VN');$('walletBalance').textContent=money(me.balance);$('meName').textContent=me.username;$('accountSection').classList.remove('hidden');renderTab(d,'orders')}catch{$('accountSection').classList.add('hidden');$('authBtn').textContent='Đăng nhập'}}
-async function logout(){await api('/api/logout',{method:'POST'});me=null;$('accountSection').classList.add('hidden');$('authBtn').textContent='Đăng nhập';$('balance').textContent='0';}
-async function buy(productId,amount){if(!me){openAuth();return}try{const d=await api('/api/buy-with-balance',{method:'POST',body:JSON.stringify({productId})});$('balance').textContent=Number(d.balance).toLocaleString('vi-VN');$('walletBalance').textContent=money(d.balance);await loadMe();alert('Mua thành công!\nTài khoản: '+d.account)}catch(e){if(e.message.includes('Số dư')){if(confirm(e.message+'\nNạp tiền ngay?'))openWallet()}else alert(e.message)}}
-function openWallet(){if(!me){openAuth();return}$('walletModal').classList.remove('hidden')}
-async function createDeposit(){try{const amount=Number($('depositAmount').value);const d=await api('/api/deposit',{method:'POST',body:JSON.stringify({amount})});$('depositResult').innerHTML=`<img class="qr" src="${d.qrUrl}" alt="QR"><div class="card"><b>${money(d.amount)}</b><div class="muted">Nội dung: <strong>${esc(d.transCode)}</strong></div></div>`;if(poll)clearInterval(poll);poll=setInterval(()=>checkDeposit(d.transCode),3000)}catch(e){$('depositResult').innerHTML='<p class="bad">'+esc(e.message)+'</p>'}}
-async function checkDeposit(code){try{const d=await api('/api/check-deposit?transCode='+encodeURIComponent(code));if(d.deposit.status==='COMPLETED'){clearInterval(poll);$('payStatus').textContent='Nạp tiền thành công';$('payStatus').className='ok';closeModals();await loadMe();alert('Nạp tiền thành công: '+money(d.deposit.amount))}}catch{}}
-async function openPay(){ }
-function showTab(type,btn){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));btn.classList.add('active');loadMe().then(()=>{});}
-function renderTab(d,type){const c=$('tabContent');let html=''; if(type==='orders'){html='<div class="scroll"><table class="table"><tr><th>Mã</th><th>Sản phẩm</th><th>Tiền</th><th>Trạng thái</th><th>Tài khoản</th></tr>'+d.orders.map(o=>`<tr><td>${esc(o.order_code)}</td><td>${esc(o.product_name)}</td><td>${money(o.amount)}</td><td class="status ${o.status==='COMPLETED'?'ok':'warn'}">${o.status}</td><td>${esc(o.account||'-')}</td></tr>`).join('')+'</table></div>'} else if(type==='deposits'){html='<div class="scroll"><table class="table"><tr><th>Mã</th><th>Số tiền</th><th>Trạng thái</th><th>Thời gian</th></tr>'+d.deposits.map(x=>`<tr><td>${esc(x.trans_code)}</td><td>${money(x.amount)}</td><td>${x.status}</td><td>${new Date(x.created_at).toLocaleString('vi-VN')}</td></tr>`).join('')+'</table></div>'} else {html='<div class="scroll"><table class="table"><tr><th>Loại</th><th>Số tiền</th><th>Mã</th><th>Trạng thái</th></tr>'+d.transactions.map(x=>`<tr><td>${x.type}</td><td class="${x.amount>=0?'ok':'bad'}">${x.amount>=0?'+':''}${money(x.amount)}</td><td>${esc(x.reference||'-')}</td><td>${x.status}</td></tr>`).join('')+'</table></div>'}c.innerHTML=html}
-loadProducts();loadMe();
-</script></body></html>
+let authMode='login', me=null, poll=null, currentTab='orders';
+const $=id=>document.getElementById(id);
+const money=n=>Number(n||0).toLocaleString('vi-VN')+'đ';
+
+async function api(url,opt={}){
+  const r=await fetch(url,{
+    credentials:'include',
+    ...opt,
+    headers:{
+      'Content-Type':'application/json',
+      ...(opt.headers||{})
+    }
+  });
+  const d=await r.json().catch(()=>({success:false,message:'Server trả dữ liệu không hợp lệ'}));
+  if(!r.ok) throw new Error(d.message||`HTTP ${r.status}`);
+  return d;
+}
+function esc(s){
+  return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+}
+
+async function loadProducts(){
+  try{
+    const d=await api('/api/get-products');
+    const products=d.products||[];
+    $('products').innerHTML=products.map(p=>`
+      <article class="card product">
+        <div class="muted">${esc(p.category)}</div>
+        <h3>${esc(p.name)}</h3>
+        <p class="muted">${esc(p.description||'')}</p>
+        <div class="price">${money(p.price)}</div>
+        <button class="btn primary" style="width:100%" onclick="buy(${Number(p.id)})">Mua ngay</button>
+      </article>`).join('') ||
+      '<div class="card muted">Chưa có sản phẩm.</div>';
+    $('productCount').textContent=products.length+' sản phẩm';
+  }catch(e){
+    $('products').innerHTML='<div class="card bad">'+esc(e.message)+'</div>';
+  }
+}
+
+function openAuth(){ $('authModal').classList.remove('hidden'); }
+function closeModals(){
+  document.querySelectorAll('.modal').forEach(x=>x.classList.add('hidden'));
+  if(poll){clearInterval(poll);poll=null;}
+}
+function toggleAuth(){
+  authMode=authMode==='login'?'register':'login';
+  $('authTitle').textContent=authMode==='login'?'Đăng nhập':'Đăng ký';
+  $('authSwitch').textContent=authMode==='login'?'Chưa có tài khoản? Đăng ký':'Đã có tài khoản? Đăng nhập';
+  $('authMsg').textContent='';
+  $('authMsg').className='bad';
+}
+async function submitAuth(){
+  try{
+    const d=await api('/api/auth',{
+      method:'POST',
+      body:JSON.stringify({
+        action:authMode,
+        username:$('username').value,
+        password:$('password').value
+      })
+    });
+    if(authMode==='register'){
+      authMode='login';
+      $('authTitle').textContent='Đăng nhập';
+      $('authSwitch').textContent='Chưa có tài khoản? Đăng ký';
+      $('authMsg').className='ok';
+      $('authMsg').textContent='Đăng ký thành công, hãy đăng nhập.';
+      return;
+    }
+    closeModals();
+    await loadMe();
+  }catch(e){
+    $('authMsg').className='bad';
+    $('authMsg').textContent=e.message;
+  }
+}
+
+async function loadMe(){
+  try{
+    const d=await api('/api/me');
+    if(!d.authenticated || !d.user) throw new Error('Chưa đăng nhập');
+    me=d.user;
+    $('authBtn').textContent='👤 Hồ sơ';
+    $('authBtn').onclick=toggleAccount;
+    $('balance').textContent=Number(me.balance||0).toLocaleString('vi-VN');
+    $('walletBalance').textContent=money(me.balance);
+    $('meName').textContent=me.username;
+    $('accountSection').classList.remove('hidden');
+    await loadAccountData(currentTab);
+  }catch{
+    me=null;
+    $('accountSection').classList.add('hidden');
+    $('authBtn').textContent='Đăng nhập';
+    $('authBtn').onclick=openAuth;
+    $('balance').textContent='0';
+  }
+}
+function toggleAccount(){
+  const s=$('accountSection');
+  s.classList.toggle('hidden');
+  if(!s.classList.contains('hidden')) s.scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function logout(){
+  try{await api('/api/logout',{method:'POST'});}catch{}
+  me=null;
+  $('accountSection').classList.add('hidden');
+  $('authBtn').textContent='Đăng nhập';
+  $('authBtn').onclick=openAuth;
+  $('balance').textContent='0';
+}
+async function buy(productId){
+  if(!me){openAuth();return;}
+  try{
+    const d=await api('/api/buy-with-balance',{
+      method:'POST',
+      body:JSON.stringify({productId})
+    });
+    await loadMe();
+    alert('Mua thành công!
+Tài khoản: '+(d.account||'-'));
+  }catch(e){
+    if(e.message.includes('Số dư')){
+      if(confirm(e.message+'
+Nạp tiền ngay?')) openWallet();
+    }else alert(e.message);
+  }
+}
+function openWallet(){
+  if(!me){openAuth();return;}
+  $('walletModal').classList.remove('hidden');
+}
+async function createDeposit(){
+  try{
+    const amount=Number($('depositAmount').value);
+    if(amount<10000){
+      $('depositResult').innerHTML='<p class="bad">Số tiền nạp tối thiểu là 10.000đ.</p>';
+      return;
+    }
+    const d=await api('/api/deposit',{
+      method:'POST',
+      body:JSON.stringify({amount})
+    });
+    $('depositResult').innerHTML=`
+      <img class="qr" src="${esc(d.qrUrl)}" alt="QR">
+      <div class="card">
+        <b>${money(d.amount)}</b>
+        <div class="muted">Nội dung: <strong>${esc(d.transCode)}</strong></div>
+      </div>
+      <p class="warn">Đang chờ thanh toán...</p>`;
+    if(poll)clearInterval(poll);
+    poll=setInterval(()=>checkDeposit(d.transCode),3000);
+  }catch(e){
+    $('depositResult').innerHTML='<p class="bad">'+esc(e.message)+'</p>';
+  }
+}
+async function checkDeposit(code){
+  try{
+    const d=await api('/api/check-deposit?transCode='+encodeURIComponent(code));
+    if(d.deposit?.status==='COMPLETED'){
+      if(poll){clearInterval(poll);poll=null;}
+      closeModals();
+      await loadMe();
+      alert('Nạp tiền thành công: '+money(d.deposit.amount));
+    }
+  }catch{}
+}
+function showTab(type,btn){
+  currentTab=type;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  btn.classList.add('active');
+  loadAccountData(type);
+}
+async function loadAccountData(type){
+  if(!me)return;
+  try{
+    const d=await api('/api/me');
+    if(!d.authenticated)return;
+    me=d.user;
+    $('balance').textContent=Number(me.balance||0).toLocaleString('vi-VN');
+    $('walletBalance').textContent=money(me.balance);
+    $('meName').textContent=me.username;
+    renderTab(d,type);
+  }catch(e){
+    $('tabContent').innerHTML='<p class="bad">'+esc(e.message)+'</p>';
+  }
+}
+function renderTab(d,type){
+  const c=$('tabContent');
+  if(type==='orders'){
+    const a=d.orders||[];
+    c.innerHTML=a.length?`<div class="scroll"><table class="table">
+      <tr><th>Mã</th><th>Sản phẩm</th><th>Tiền</th><th>Trạng thái</th><th>Tài khoản</th></tr>
+      ${a.map(o=>`<tr><td>${esc(o.order_code)}</td><td>${esc(o.product_name)}</td><td>${money(o.amount)}</td>
+      <td class="status ${o.status==='COMPLETED'?'ok':'warn'}">${esc(o.status)}</td><td>${esc(o.account||'-')}</td></tr>`).join('')}
+    </table></div>`:'<p class="muted">Chưa có đơn hàng.</p>';
+  }else if(type==='deposits'){
+    const a=d.deposits||[];
+    c.innerHTML=a.length?`<div class="scroll"><table class="table">
+      <tr><th>Mã</th><th>Số tiền</th><th>Trạng thái</th><th>Thời gian</th></tr>
+      ${a.map(x=>`<tr><td>${esc(x.trans_code)}</td><td>${money(x.amount)}</td><td>${esc(x.status)}</td>
+      <td>${new Date(x.created_at).toLocaleString('vi-VN')}</td></tr>`).join('')}
+    </table></div>`:'<p class="muted">Chưa có giao dịch nạp tiền.</p>';
+  }else{
+    const a=d.transactions||[];
+    c.innerHTML=a.length?`<div class="scroll"><table class="table">
+      <tr><th>Loại</th><th>Số tiền</th><th>Mã</th><th>Trạng thái</th></tr>
+      ${a.map(x=>`<tr><td>${esc(x.type)}</td><td class="${Number(x.amount)>=0?'ok':'bad'}">${Number(x.amount)>=0?'+':''}${money(x.amount)}</td>
+      <td>${esc(x.reference||'-')}</td><td>${esc(x.status)}</td></tr>`).join('')}
+    </table></div>`:'<p class="muted">Chưa có giao dịch ví.</p>';
+  }
+}
+
+loadProducts();
+loadMe();
+</script>
+
+</body></html>
