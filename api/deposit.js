@@ -47,8 +47,8 @@ async function depositHandler(req, res) {
 
     const { amount } = req.body || {};
     const numAmount = Number(amount);
-    if (!numAmount || numAmount < 10000) {
-      return res.status(400).json({ success: false, message: 'Số tiền nạp tối thiểu là 10.000đ' });
+    if (!numAmount || numAmount < 2000) {
+      return res.status(400).json({ success: false, message: 'Số tiền nạp tối thiểu là 2.000đ' });
     }
 
     // 2. Cấu hình Ngân hàng (Lấy từ biến Vercel hoặc dùng mặc định)
