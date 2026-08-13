@@ -508,7 +508,7 @@
     // 6. Tạo mã QR Nạp tiền
     async function generateQR() {
       const amount = document.getElementById('deposit-amount').value;
-      if (!amount || amount < 10000) return alert('Số tiền nạp tối thiểu là 10.000đ');
+      if (!amount || amount < 2000) return alert('Số tiền nạp tối thiểu là 2.000đ');
 
       try {
         const res = await fetch('/api/deposit', {
