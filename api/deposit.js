@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { createNetlifyHandler } from './_adapter.js';
 
 function parseCookies(req) {
   const list = {};
@@ -12,73 +13,83 @@ function parseCookies(req) {
   return list;
 }
 
-export default async function handler(req, res) {
+async function depositHandler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method Not Allowed' });
   }
 
   try {
     const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-    
-    // Đọc Cookie hoặc body để xác định người dùng
+
+    // 1. Lấy thông tin tài khoản đăng nhập
     const cookies = req.cookies || parseCookies(req);
     const token = cookies?.wazue_session;
-    let username = req.body?.username;
-
-    if (token && !username) {
-      try {
-        const { tokenHash } = await import('./_auth.js');
-        const hash = tokenHash(token);
-        const { data: session } = await supabase
-          .from('sessions')
-          .select('username')
-          .eq('token_hash', hash)
-          .maybeSingle();
-        if (session?.username) username = session.username;
-      } catch (authErr) {
-        console.warn('Lỗi giải mã token:', authErr.message);
-      }
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'Vui lòng đăng nhập để nạp tiền' });
     }
+
+    let username = null;
+    try {
+      const { tokenHash } = await import('./_auth.js');
+      const hash = tokenHash(token);
+      const { data: session } = await supabase
+        .from('sessions')
+        .select('username')
+        .eq('token_hash', hash)
+        .maybeSingle();
+
+      if (session) username = session.username;
+    } catch (authErr) {}
 
     if (!username) {
-      return res.status(401).json({ success: false, message: 'Vui lòng đăng nhập' });
+      return res.status(401).json({ success: false, message: 'Phiên đăng nhập hết hạn' });
     }
 
-    const amount = Number(req.body?.amount || 0);
-    if (!amount || amount < 2000) {
-      return res.status(400).json({ success: false, message: 'Số tiền tối thiểu là 2.000đ' });
+    const { amount } = req.body || {};
+    const numAmount = Number(amount);
+    if (!numAmount || numAmount < 10000) {
+      return res.status(400).json({ success: false, message: 'Số tiền nạp tối thiểu là 10.000đ' });
     }
 
-    // Tạo mã đơn dạng WZ + USER + RANDOM
-    const cleanUser = username.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 6);
-    const randomPart = Math.random().toString(36).substring(2, 7).toUpperCase();
-    const transCode = `WZ${cleanUser}${randomPart}`;
+    // 2. Cấu hình Ngân hàng (Lấy từ biến Vercel hoặc dùng mặc định)
+    const bankId = process.env.BANK_ID || 'MB';
+    const bankAcc = process.env.BANK_ACC || '0000000000';
+    const accountName = process.env.ACCOUNT_NAME || 'WAZUE STORE';
 
-    const { error: dbErr } = await supabase.from('deposits').insert([{
-      username: username,
+    // 3. Tạo mã giao dịch ngẫu nhiên
+    const transCode = 'NAP' + Math.floor(100000 + Math.random() * 900000);
+
+    // 4. Tạo đường link VietQR chuẩn
+    const qrCode = `https://img.vietqr.io/image/${bankId}-${bankAcc}-compact2.png?amount=${numAmount}&addInfo=${transCode}&accountName=${encodeURIComponent(accountName)}`;
+
+    // 5. Lưu đơn nạp vào Supabase
+    const { error: dbError } = await supabase.from('deposits').insert([{
+      username: username.toLowerCase(),
       trans_code: transCode,
-      amount: amount,
+      amount: numAmount,
       status: 'PENDING'
     }]);
 
-    if (dbErr) {
-      return res.status(500).json({ success: false, message: 'Lỗi tạo đơn trong DB' });
+    if (dbError) {
+      console.error('Lỗi lưu đơn nạp:', dbError);
+      return res.status(500).json({ success: false, message: 'Lỗi Database: ' + dbError.message });
     }
-
-    const bankId = process.env.BANK_ID || 'MB';
-    const bankAcc = process.env.BANK_ACC || '9006688668';
-    const qrUrl = `https://qr.sepay.vn/img?bank=${bankId}&acc=${bankAcc}&template=compact&amount=${amount}&des=${transCode}`;
 
     return res.status(200).json({
       success: true,
-      transCode: transCode,
+      message: 'Tạo mã nạp tiền thành công',
+      transCode,
       trans_code: transCode,
-      code: transCode,
-      amount: amount,
-      qrUrl: qrUrl
+      amount: numAmount,
+      qrCode,
+      qr_url: qrCode
     });
 
   } catch (error) {
+    console.error('Lỗi nạp tiền:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 }
+
+export default depositHandler;
+export const handler = createNetlifyHandler(depositHandler);
