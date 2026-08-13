@@ -21,14 +21,10 @@ function generateRandomString(length) {
   return result;
 }
 
-// Hàm tự động trích xuất số ngày sử dụng từ tên sản phẩm
 function parseProductDays(productName) {
   if (!productName) return 30;
   const match = productName.match(/(\d+)\s*(ngày|day)/i);
-  if (match && match[1]) {
-    return parseInt(match[1]);
-  }
-  return 30; // Mặc định 30 ngày nếu tên sản phẩm không ghi số ngày
+  return (match && match[1]) ? parseInt(match[1]) : 30;
 }
 
 export default async function handler(req, res) {
@@ -45,7 +41,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ success: false, message: 'Vui lòng đăng nhập để mua hàng' });
     }
 
-    // 1. Xác thực người dùng qua Session
+    // 1. Xác thực người dùng
     let username = null;
     try {
       const { tokenHash } = await import('./_auth.js');
@@ -98,62 +94,62 @@ export default async function handler(req, res) {
       });
     }
 
-    // 4. ĐỌC BIẾN MÔI TRƯỜNG TỪ VERCEL & TẠO TÀI KHOẢN TRÊN QLING
-    const apiBase = (process.env.QLING_BASE_URL || 'http://qling.ddns.net').replace(/\/$/, '');
-    const ctvKey = process.env.QLING_CTV_KEY;
-    const rawPrefix = (process.env.QLING_PREFIX || 'ctv').replace(/-$/, '');
+    // 4. PHÂN NHÁNH BÀN GIAO SẢN PHẨM
+    let deliveredAccount = (product.stock_content && product.stock_content.trim() !== '') 
+      ? product.stock_content.trim() 
+      : '';
 
-    if (!ctvKey) {
-      return res.status(500).json({
-        success: false,
-        message: 'Lỗi cấu hình: Chưa thiết lập QLING_CTV_KEY trên Vercel'
+    // NẾU CHƯA CÓ KHO SẴN -> MỚI GỌI API QLING (Tạo nick Wazue tự động)
+    if (!deliveredAccount) {
+      const apiBase = (process.env.QLING_BASE_URL || 'http://qling.ddns.net').replace(/\/$/, '');
+      const ctvKey = process.env.QLING_CTV_KEY;
+      const rawPrefix = (process.env.QLING_PREFIX || 'ctv').replace(/-$/, '');
+
+      if (!ctvKey) {
+        return res.status(500).json({
+          success: false,
+          message: 'Lỗi cấu hình: Chưa thiết lập QLING_CTV_KEY trên Vercel'
+        });
+      }
+
+      const newUsername = `${rawPrefix}-${generateRandomString(6)}`;
+      const newPassword = generateRandomString(8);
+
+      // Gọi API Qling tạo tài khoản
+      const createRes = await fetch(`${apiBase}/api/ctv/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Ctv-Key': ctvKey
+        },
+        body: JSON.stringify({ username: newUsername, password: newPassword })
       });
+
+      const createData = await createRes.json().catch(() => ({}));
+      if (!createRes.ok) {
+        return res.status(500).json({
+          success: false,
+          message: 'Lỗi tạo tài khoản Qling: ' + (createData.message || 'Server không phản hồi')
+        });
+      }
+
+      // Kích hoạt Plan & Ngày dùng
+      const daysToExtend = parseProductDays(product.name);
+      const planToSet = product.plan !== undefined ? parseInt(product.plan) : 1;
+
+      await fetch(`${apiBase}/api/ctv/users/${encodeURIComponent(newUsername)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Ctv-Key': ctvKey
+        },
+        body: JSON.stringify({ plan: planToSet, extend_days: daysToExtend })
+      });
+
+      deliveredAccount = `TK: ${newUsername} | MK: ${newPassword} | Hạn: ${daysToExtend} Ngày`;
     }
 
-    // Tạo Username dạng: [PREFIX]-[RANDOM_6_KY_TU]
-    const newUsername = `${rawPrefix}-${generateRandomString(6)}`;
-    const newPassword = generateRandomString(8);
-
-    // Bước 4.1: Gọi API tạo User trên Server Qling
-    const createRes = await fetch(`${apiBase}/api/ctv/users`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Ctv-Key': ctvKey
-      },
-      body: JSON.stringify({
-        username: newUsername,
-        password: newPassword
-      })
-    });
-
-    const createData = await createRes.json().catch(() => ({}));
-    if (!createRes.ok) {
-      return res.status(500).json({
-        success: false,
-        message: 'Lỗi tạo tài khoản Qling: ' + (createData.message || 'Server không phản hồi')
-      });
-    }
-
-    // Bước 4.2: Kích hoạt Plan & Gia hạn ngày dùng
-    const daysToExtend = parseProductDays(product.name);
-    const planToSet = product.plan !== undefined ? parseInt(product.plan) : 1;
-
-    await fetch(`${apiBase}/api/ctv/users/${encodeURIComponent(newUsername)}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Ctv-Key': ctvKey
-      },
-      body: JSON.stringify({
-        plan: planToSet,
-        extend_days: daysToExtend
-      })
-    });
-
-    const deliveredAccount = `TK: ${newUsername} | MK: ${newPassword} | Hạn: ${daysToExtend} Ngày`;
-
-    // 5. Trừ tiền tài khoản người dùng trên Supabase
+    // 5. Trừ tiền tài khoản người mua
     const newBalance = currentBalance - price;
     await supabase
       .from('users')
@@ -162,7 +158,7 @@ export default async function handler(req, res) {
 
     const orderCode = 'ORD' + Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    // 6. Lưu lịch sử Đơn hàng
+    // 6. Lưu đơn hàng
     await supabase.from('orders').insert([{
       username: username.toLowerCase(),
       order_code: orderCode,
@@ -173,7 +169,7 @@ export default async function handler(req, res) {
       account: deliveredAccount
     }]);
 
-    // 7. Lưu giao dịch Ví
+    // 7. Ghi lịch sử ví
     try {
       await supabase.from('wallet_transactions').insert([{
         username: username.toLowerCase(),
