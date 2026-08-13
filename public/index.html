@@ -8,7 +8,7 @@
 <div id="walletModal" class="modal hidden"><div><div class="row"><h3>Nạp tiền</h3><button class="pill" onclick="closeModals()">✕</button></div><p class="muted">Tối thiểu <span id="minDepositText">7.000đ</span></p><input id="depositAmount" class="input" type="number" min="7000" step="1000" placeholder="Số tiền"><button class="btn primary" style="width:100%;margin-top:8px" onclick="createDeposit()">Tạo QR</button><div id="depositResult"></div></div></div>
 
 <script>
-const MIN_DEPOSIT = 7000;
+const MIN_DEPOSIT = 2000;
 let authMode='login', me=null, poll=null, currentTab='orders';
 const $=id=>document.getElementById(id);
 const money=n=>Number(n||0).toLocaleString('vi-VN')+'đ';
