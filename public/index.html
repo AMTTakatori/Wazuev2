@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wazue Store — Cửa hàng Tài khoản & Dịch vụ</title>
+  <title>Wazue Store — Cửa Hàng & Dịch Vụ Tự Động</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -16,6 +16,7 @@
       --teal: #00d4aa;
       --teal-hover: #00ffcc;
       --blue: #3b82f6;
+      --red: #ff4f6d;
       --text: #f8fafc;
       --muted: #94a3b8;
       --radius: 14px;
@@ -32,21 +33,19 @@
       padding-bottom: 60px;
     }
 
-    /* Top Navigation */
+    /* Navbar */
     .navbar {
-      background: rgba(19, 27, 46, 0.8);
+      background: rgba(19, 27, 46, 0.85);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--card-border);
       position: sticky; top: 0; z-index: 100;
       padding: 14px 24px;
       display: flex; justify-content: space-between; align-items: center;
     }
-    .brand {
-      font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 8px;
-    }
+    .brand { font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
     .brand span { color: var(--teal); }
 
-    .user-nav { display: flex; align-items: center; gap: 12px; }
+    .user-nav { display: flex; align-items: center; gap: 10px; }
     .balance-badge {
       background: rgba(0, 212, 170, 0.1);
       border: 1px solid rgba(0, 212, 170, 0.3);
@@ -55,58 +54,84 @@
       font-family: var(--mono);
     }
 
-    /* Container */
-    .container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
-    .section-title { font-size: 22px; font-weight: 800; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-    .section-title i { color: var(--teal); }
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex; gap: 8px; padding: 16px 20px 0;
+      max-width: 1100px; margin: 0 auto;
+      border-bottom: 1px solid var(--card-border);
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: transparent; border: none;
+      color: var(--muted); font-family: var(--font);
+      font-size: 14px; font-weight: 600; padding: 10px 18px;
+      cursor: pointer; border-bottom: 2px solid transparent;
+      display: flex; align-items: center; gap: 8px;
+      white-space: nowrap; transition: all 0.2s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); }
+
+    /* Main Container */
+    .container { max-width: 1100px; margin: 24px auto; padding: 0 20px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
     /* Product Grid */
     .product-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 22px;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 22px;
     }
-
     .product-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius);
-      overflow: hidden;
-      display: flex; flex-direction: column;
-      transition: all 0.25s ease;
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: var(--radius); overflow: hidden;
+      display: flex; flex-direction: column; transition: all 0.25s ease;
     }
     .product-card:hover {
-      transform: translateY(-4px);
-      border-color: var(--teal);
+      transform: translateY(-4px); border-color: var(--teal);
       box-shadow: 0 10px 25px rgba(0, 212, 170, 0.15);
     }
-
-    /* Product Image Container */
     .product-img-wrap {
-      width: 100%; height: 160px;
-      background: #0f172a;
-      position: relative; overflow: hidden;
+      width: 100%; height: 160px; background: #0f172a;
       display: flex; align-items: center; justify-content: center;
+      overflow: hidden; position: relative;
     }
-    .product-img {
-      width: 100%; height: 100%;
-      object-fit: cover;
-      transition: transform 0.3s ease;
-    }
+    .product-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
     .product-card:hover .product-img { transform: scale(1.05); }
-    .product-placeholder { font-size: 40px; color: var(--muted); opacity: 0.4; }
+    .product-placeholder { font-size: 40px; color: var(--muted); opacity: 0.3; }
 
     .product-body { padding: 18px; display: flex; flex-direction: column; flex: 1; }
-    .product-name { font-size: 17px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+    .product-name { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
     .product-desc { font-size: 12px; color: var(--muted); line-height: 1.4; margin-bottom: 14px; flex: 1; }
-    
     .product-footer {
       display: flex; justify-content: space-between; align-items: center;
-      margin-top: auto; pt: 12px; border-top: 1px solid rgba(255,255,255,0.05);
+      margin-top: auto; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05);
     }
     .product-price { font-size: 18px; font-weight: 800; color: var(--teal); font-family: var(--mono); }
 
-    /* Buttons */
+    /* Table Styles (Lịch sử) */
+    .table-responsive { width: 100%; overflow-x: auto; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+    th { background: #0f172a; padding: 14px 16px; color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; border-bottom: 1px solid var(--card-border); }
+    td { padding: 14px 16px; border-bottom: 1px solid var(--card-border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; font-family: var(--mono); }
+    .badge-success { background: rgba(0,212,170,0.12); color: var(--teal); }
+    .badge-pending { background: rgba(255,184,79,0.12); color: #ffb84f; }
+
+    /* Profile Card */
+    .profile-card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: var(--radius); padding: 26px; max-width: 500px; margin: 0 auto;
+    }
+    .profile-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; font-weight: 800; color: #000; margin-bottom: 16px;
+    }
+
+    /* Buttons & Inputs */
     .btn {
       padding: 9px 16px; border-radius: 8px; border: none;
       font-family: var(--font); font-size: 13px; font-weight: 700;
@@ -115,6 +140,8 @@
     }
     .btn-teal { background: var(--teal); color: #000; }
     .btn-teal:hover { background: var(--teal-hover); box-shadow: 0 4px 15px rgba(0,212,170,0.3); }
+    .btn-danger { background: rgba(255,79,109,0.15); border: 1px solid rgba(255,79,109,0.3); color: var(--red); }
+    .btn-danger:hover { background: var(--red); color: #fff; }
     .btn-outline { background: transparent; border: 1px solid var(--card-border); color: var(--text); }
     .btn-outline:hover { background: rgba(255,255,255,0.05); border-color: var(--teal); color: var(--teal); }
 
@@ -132,7 +159,7 @@
     }
     @keyframes popUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-    .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 16px; color: var(--text); }
+    .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 16px; }
     .result-box {
       background: #0f172a; border: 1px dashed var(--teal);
       border-radius: 10px; padding: 14px; font-family: var(--mono);
@@ -140,7 +167,7 @@
     }
 
     .form-group { margin-bottom: 14px; }
-    .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; }
+    .form-group label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
     .form-control {
       width: 100%; background: #0f172a; border: 1px solid var(--card-border);
       border-radius: 8px; padding: 10px 12px; color: var(--text);
@@ -156,33 +183,106 @@
     <div class="brand">
       <i class="fa-solid fa-bolt" style="color:var(--teal)"></i> Wazue<span>Store</span>
     </div>
+    
     <div class="user-nav">
+      <!-- Khi đã đăng nhập -->
       <div id="user-info" style="display:none; align-items:center; gap:10px;">
         <span class="balance-badge" id="user-balance">0đ</span>
-        <button class="btn btn-outline" onclick="openDepositModal()"><i class="fa-solid fa-wallet"></i> Nạp tiền</button>
+        <button class="btn btn-teal" onclick="openDepositModal()"><i class="fa-solid fa-wallet"></i> Nạp tiền</button>
+        <button class="btn btn-outline" onclick="switchTab('profile')" title="Hồ sơ cá nhân"><i class="fa-solid fa-user"></i></button>
+        <button class="btn btn-danger" onclick="doLogout()" title="Đăng xuất"><i class="fa-solid fa-right-from-bracket"></i></button>
       </div>
+      
+      <!-- Khi chưa đăng nhập -->
       <button class="btn btn-teal" id="btn-login" onclick="openAuthModal()"><i class="fa-solid fa-right-to-bracket"></i> Đăng nhập</button>
     </div>
   </div>
 
-  <!-- Main Content -->
-  <div class="container">
-    <div class="section-title">
-      <i class="fa-solid fa-store"></i> Danh sách Sản phẩm
-    </div>
-    <div class="product-grid" id="product-list">
-      <div style="grid-column: 1/-1; text-align: center; color: var(--muted); padding: 40px;">
-        <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; color: var(--teal);"></i>
-        <p style="margin-top: 10px;">Đang tải danh sách sản phẩm...</p>
-      </div>
-    </div>
+  <!-- Sub Navigation Tabs -->
+  <div class="nav-tabs">
+    <button class="tab-btn active" data-tab="store" onclick="switchTab('store')"><i class="fa-solid fa-store"></i> Cửa Hàng</button>
+    <button class="tab-btn" data-tab="orders" onclick="switchTab('orders')"><i class="fa-solid fa-box-archive"></i> Đơn Hàng Đã Mua</button>
+    <button class="tab-btn" data-tab="deposits" onclick="switchTab('deposits')"><i class="fa-solid fa-clock-rotate-left"></i> Lịch Sử Nạp</button>
+    <button class="tab-btn" data-tab="profile" onclick="switchTab('profile')"><i class="fa-solid fa-id-card"></i> Hồ Sơ Cá Nhân</button>
   </div>
 
-  <!-- MODAL BÀN GIAO SẢN PHẨM / TÀI KHOẢN -->
+  <!-- Main Container -->
+  <div class="container">
+    
+    <!-- TAB 1: STORE -->
+    <div class="tab-content active" id="tab-store">
+      <div class="product-grid" id="product-list">
+        <div style="grid-column: 1/-1; text-align: center; color: var(--muted); padding: 40px;">
+          <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; color: var(--teal);"></i>
+          <p style="margin-top: 10px;">Đang tải danh sách sản phẩm...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: LỊCH SỬ ĐƠN HÀNG -->
+    <div class="tab-content" id="tab-orders">
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Mã Đơn</th>
+              <th>Sản Phẩm</th>
+              <th>Giá</th>
+              <th>Nội Dung Bàn Giao</th>
+              <th>Trạng Thái</th>
+            </tr>
+          </thead>
+          <tbody id="order-history-list">
+            <tr><td colspan="5" style="text-align:center; color:var(--muted); padding:20px;">Đang tải lịch sử...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 3: LỊCH SỬ NẠP TIỀN -->
+    <div class="tab-content" id="tab-deposits">
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Mã GD</th>
+              <th>Số Tiền</th>
+              <th>Trạng Thái</th>
+              <th>Thời Gian</th>
+            </tr>
+          </thead>
+          <tbody id="deposit-history-list">
+            <tr><td colspan="4" style="text-align:center; color:var(--muted); padding:20px;">Đang tải lịch sử nạp...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 4: HỒ SƠ CÁ NHÂN -->
+    <div class="tab-content" id="tab-profile">
+      <div class="profile-card">
+        <div class="profile-avatar" id="p-avatar">?</div>
+        <h2 style="font-size: 20px; font-weight: 800;" id="p-username">User</h2>
+        <p style="font-size: 13px; color: var(--muted); margin-bottom: 20px;">Tài khoản thành viên</p>
+        
+        <div style="background: #0f172a; padding: 14px; border-radius: 10px; margin-bottom: 16px;">
+          <div style="font-size: 11px; color: var(--muted); text-transform: uppercase;">Số Dư Hiện Tại</div>
+          <div style="font-size: 24px; font-weight: 800; color: var(--teal); font-family: var(--mono);" id="p-balance">0đ</div>
+        </div>
+
+        <button class="btn btn-danger" style="width: 100%; padding: 12px;" onclick="doLogout()">
+          <i class="fa-solid fa-right-from-bracket"></i> Đăng Xuất Tài Khoản
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL BÀN GIAO SẢN PHẨM -->
   <div class="modal-overlay" id="modal-result">
     <div class="modal-box">
       <div class="modal-title"><i class="fa-solid fa-circle-check" style="color:var(--teal)"></i> Mua Hàng Thành Công!</div>
-      <p style="font-size: 13px; color: var(--muted);">Cảm ơn bạn đã mua hàng. Dưới đây là thông tin nhận sản phẩm của bạn:</p>
+      <p style="font-size: 13px; color: var(--muted);">Cảm ơn bạn đã ủng hộ. Dưới đây là thông tin nhận hàng của bạn:</p>
       
       <div class="result-box" id="result-account-content">---</div>
       
@@ -196,27 +296,67 @@
     </div>
   </div>
 
+  <!-- MODAL NẠP TIỀN (VIETQR) -->
+  <div class="modal-overlay" id="modal-deposit">
+    <div class="modal-box" style="text-align: center;">
+      <div class="modal-title" style="text-align: left;"><i class="fa-solid fa-qrcode" style="color:var(--teal)"></i> Nạp Tiền Tự Động</div>
+      
+      <div id="deposit-step-1">
+        <div class="form-group" style="text-align: left;">
+          <label>Nhập số tiền cần nạp (VNĐ)</label>
+          <input type="number" id="deposit-amount" class="form-control" placeholder="Ví dụ: 10000" min="10000">
+        </div>
+        <button class="btn btn-teal" style="width: 100%;" onclick="generateQR()">Tạo Mã QR Nạp Tiền</button>
+      </div>
+
+      <div id="deposit-step-2" style="display: none;">
+        <img id="deposit-qr-img" src="" alt="VietQR" style="width: 220px; border-radius: 12px; margin: 10px 0;">
+        <p style="font-size: 12px; color: var(--muted);">Quét mã QR bằng ứng dụng Ngân hàng để thanh toán tự động trong ít phút.</p>
+        <div class="result-box" style="text-align: left;">
+          Mã giao dịch: <b id="deposit-trans-code" style="color:#fff;">---</b>
+        </div>
+        <p style="font-size: 12px; color: var(--teal);"><i class="fa-solid fa-spinner fa-spin"></i> Đang chờ hệ thống xác nhận thanh toán...</p>
+      </div>
+
+      <button class="btn btn-outline" style="width: 100%; margin-top: 14px;" onclick="closeModal('modal-deposit')">Đóng</button>
+    </div>
+  </div>
+
   <!-- MODAL ĐĂNG NHẬP -->
   <div class="modal-overlay" id="modal-auth">
     <div class="modal-box">
       <div class="modal-title"><i class="fa-solid fa-user-lock" style="color:var(--teal)"></i> Đăng Nhập / Đăng Ký</div>
       <div class="form-group">
         <label>Tên tài khoản</label>
-        <input type="text" id="auth-user" class="form-control" placeholder="Nhập username...">
+        <input type="text" id="auth-user" class="form-control" placeholder="Username...">
       </div>
       <div class="form-group">
         <label>Mật khẩu</label>
         <input type="password" id="auth-pass" class="form-control" placeholder="••••••••">
       </div>
-      <button class="btn btn-teal" style="width: 100%; margin-top: 8px;" onclick="doAuth()">Đăng Nhập Ngay</button>
+      <button class="btn btn-teal" style="width: 100%; margin-top: 8px;" onclick="doAuth()">Đăng Nhập / Đăng Ký</button>
       <button class="btn btn-outline" style="width: 100%; margin-top: 8px;" onclick="closeModal('modal-auth')">Hủy</button>
     </div>
   </div>
 
   <script>
     let currentUser = null;
+    let depositTimer = null;
 
-    // 1. Kiểm tra trạng thái Đăng nhập
+    // Switch Tabs
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabId);
+      });
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === 'tab-' + tabId);
+      });
+
+      if (tabId === 'orders') loadOrderHistory();
+      if (tabId === 'deposits') loadDepositHistory();
+    }
+
+    // 1. Kiểm tra Auth
     async function checkAuth() {
       try {
         const res = await fetch('/api/me');
@@ -225,12 +365,21 @@
           currentUser = data.user;
           document.getElementById('user-info').style.display = 'flex';
           document.getElementById('btn-login').style.display = 'none';
-          document.getElementById('user-balance').textContent = Number(data.user.balance || 0).toLocaleString('vi-VN') + 'đ';
+          
+          const formattedBalance = Number(data.user.balance || 0).toLocaleString('vi-VN') + 'đ';
+          document.getElementById('user-balance').textContent = formattedBalance;
+          document.getElementById('p-balance').textContent = formattedBalance;
+          document.getElementById('p-username').textContent = data.user.username;
+          document.getElementById('p-avatar').textContent = data.user.username.charAt(0).toUpperCase();
+        } else {
+          currentUser = null;
+          document.getElementById('user-info').style.display = 'none';
+          document.getElementById('btn-login').style.display = 'inline-flex';
         }
       } catch(e){}
     }
 
-    // 2. Load Danh sách sản phẩm (Hiển thị Ảnh + Mô tả Filza)
+    // 2. Load Danh sách sản phẩm (Hiển thị ảnh Filza & Mô tả)
     async function loadProducts() {
       const container = document.getElementById('product-list');
       try {
@@ -243,21 +392,16 @@
         }
 
         container.innerHTML = products.map(p => {
-          // Xử lý Ảnh sản phẩm
           const imgHtml = p.image_url
             ? `<img src="${p.image_url}" alt="${p.name}" class="product-img">`
             : `<i class="fa-solid fa-box-open product-placeholder"></i>`;
 
-          // Xử lý Mô tả sản phẩm
-          const descText = p.description || p.desc || 'Sản phẩm chất lượng cao tự động bàn giao ngay khi mua.';
-
+          const descText = p.description || 'Sản phẩm chất lượng cao tự động bàn giao ngay khi mua.';
           const formattedPrice = Number(p.price || 0).toLocaleString('vi-VN') + 'đ';
 
           return `
             <div class="product-card">
-              <div class="product-img-wrap">
-                ${imgHtml}
-              </div>
+              <div class="product-img-wrap">${imgHtml}</div>
               <div class="product-body">
                 <div class="product-name">${p.name}</div>
                 <div class="product-desc">${descText}</div>
@@ -271,20 +415,15 @@
             </div>
           `;
         }).join('');
-
       } catch (e) {
         container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #ff4f6d;">Lỗi tải sản phẩm!</div>';
       }
     }
 
-    // 3. Mua Sản phẩm
+    // 3. Mua sản phẩm
     async function buyProduct(productId) {
-      if (!currentUser) {
-        openAuthModal();
-        return;
-      }
-
-      if (!confirm('Bạn có chắc chắn muốn mua sản phẩm này?')) return;
+      if (!currentUser) return openAuthModal();
+      if (!confirm('Xác nhận mua sản phẩm này?')) return;
 
       try {
         const res = await fetch('/api/buy-with-balance', {
@@ -298,7 +437,6 @@
           const accContent = data.account || 'Thành công!';
           document.getElementById('result-account-content').textContent = accContent;
 
-          // Nếu kết quả trả về là Đường link (Google Drive...)
           const linkWrap = document.getElementById('link-action-wrap');
           const btnLink = document.getElementById('btn-open-link');
           if (accContent.startsWith('http://') || accContent.startsWith('https://')) {
@@ -309,7 +447,7 @@
           }
 
           document.getElementById('modal-result').classList.add('active');
-          checkAuth(); // Cập nhật lại số dư
+          checkAuth();
         } else {
           alert(data.message || 'Lỗi mua hàng!');
         }
@@ -318,11 +456,97 @@
       }
     }
 
-    // 4. Đăng nhập giả lập / Đăng nhập
+    // 4. Lịch sử đơn hàng
+    async function loadOrderHistory() {
+      if (!currentUser) return;
+      const tbody = document.getElementById('order-history-list');
+      try {
+        const res = await fetch('/api/check-order');
+        const data = await res.json();
+        const orders = data.orders || [];
+
+        if (orders.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:20px;">Chưa mua đơn hàng nào</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = orders.map(o => `
+          <tr>
+            <td style="font-family:var(--mono); color:var(--teal);">${o.order_code || o.id}</td>
+            <td style="font-weight:700;">${o.product_name || 'Sản phẩm'}</td>
+            <td style="font-family:var(--mono);">${Number(o.amount || 0).toLocaleString('vi-VN')}đ</td>
+            <td style="font-family:var(--mono); font-size:12px;">${o.account || '---'}</td>
+            <td><span class="badge badge-success">HOÀN TẤT</span></td>
+          </tr>
+        `).join('');
+      } catch(e) {}
+    }
+
+    // 5. Lịch sử nạp tiền
+    async function loadDepositHistory() {
+      if (!currentUser) return;
+      const tbody = document.getElementById('deposit-history-list');
+      try {
+        const res = await fetch('/api/check-deposit');
+        const data = await res.json();
+        const deposits = data.deposits || [];
+
+        if (deposits.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:20px;">Chưa có lịch sử nạp tiền</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = deposits.map(d => `
+          <tr>
+            <td style="font-family:var(--mono); color:var(--teal);">${d.trans_code}</td>
+            <td style="font-family:var(--mono);">${Number(d.amount || 0).toLocaleString('vi-VN')}đ</td>
+            <td><span class="badge ${d.status === 'COMPLETED' ? 'badge-success' : 'badge-pending'}">${d.status}</span></td>
+            <td style="color:var(--muted); font-size:12px;">${new Date(d.created_at || Date.now()).toLocaleString('vi-VN')}</td>
+          </tr>
+        `).join('');
+      } catch(e) {}
+    }
+
+    // 6. Tạo QR Nạp Tiền
+    async function generateQR() {
+      const amount = document.getElementById('deposit-amount').value;
+      if (!amount || amount < 10000) return alert('Số tiền nạp tối thiểu là 10.000đ');
+
+      try {
+        const res = await fetch('/api/deposit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          document.getElementById('deposit-step-1').style.display = 'none';
+          document.getElementById('deposit-step-2').style.display = 'block';
+          document.getElementById('deposit-qr-img').src = data.qrCode || data.qr_url;
+          document.getElementById('deposit-trans-code').textContent = data.transCode || data.trans_code;
+
+          // Polling kiểm tra tự động
+          if (depositTimer) clearInterval(depositTimer);
+          depositTimer = setInterval(async () => {
+            const cRes = await fetch(`/api/check-deposit?code=${data.transCode || data.trans_code}`);
+            const cData = await cRes.json();
+            if (cData.deposit && cData.deposit.status === 'COMPLETED') {
+              clearInterval(depositTimer);
+              alert('Nạp tiền thành công!');
+              closeModal('modal-deposit');
+              checkAuth();
+            }
+          }, 3000);
+        }
+      } catch(e) { alert('Lỗi tạo mã nạp!'); }
+    }
+
+    // Auth & Logout
     async function doAuth() {
       const u = document.getElementById('auth-user').value.trim();
       const p = document.getElementById('auth-pass').value;
-      if (!u || !p) return alert('Vui lòng điền đủ thông tin');
+      if (!u || !p) return alert('Điền đầy đủ tài khoản & mật khẩu');
 
       const res = await fetch('/api/auth', {
         method: 'POST',
@@ -333,13 +557,27 @@
       if (data.success) {
         closeModal('modal-auth');
         checkAuth();
-      } else {
-        alert(data.message || 'Thất bại');
-      }
+      } else { alert(data.message || 'Thất bại'); }
+    }
+
+    async function doLogout() {
+      await fetch('/api/logout', { method: 'POST' });
+      currentUser = null;
+      checkAuth();
+      switchTab('store');
     }
 
     function openAuthModal() { document.getElementById('modal-auth').classList.add('active'); }
-    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    function openDepositModal() {
+      if (!currentUser) return openAuthModal();
+      document.getElementById('deposit-step-1').style.display = 'block';
+      document.getElementById('deposit-step-2').style.display = 'none';
+      document.getElementById('modal-deposit').classList.add('active');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+      if (depositTimer) clearInterval(depositTimer);
+    }
 
     // Init
     checkAuth();
