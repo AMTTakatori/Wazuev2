@@ -72,7 +72,7 @@
     .tab-btn:hover { color: var(--text); }
     .tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); }
 
-    /* Main Container */
+    /* Container */
     .container { max-width: 1100px; margin: 24px auto; padding: 0 20px; }
     .tab-content { display: none; }
     .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
@@ -109,7 +109,7 @@
     }
     .product-price { font-size: 18px; font-weight: 800; color: var(--teal); font-family: var(--mono); }
 
-    /* Table Styles (Lịch sử) */
+    /* Table Styles */
     .table-responsive { width: 100%; overflow-x: auto; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); }
     table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
     th { background: #0f172a; padding: 14px 16px; color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; border-bottom: 1px solid var(--card-border); }
@@ -185,7 +185,6 @@
     </div>
     
     <div class="user-nav">
-      <!-- Khi đã đăng nhập -->
       <div id="user-info" style="display:none; align-items:center; gap:10px;">
         <span class="balance-badge" id="user-balance">0đ</span>
         <button class="btn btn-teal" onclick="openDepositModal()"><i class="fa-solid fa-wallet"></i> Nạp tiền</button>
@@ -193,7 +192,6 @@
         <button class="btn btn-danger" onclick="doLogout()" title="Đăng xuất"><i class="fa-solid fa-right-from-bracket"></i></button>
       </div>
       
-      <!-- Khi chưa đăng nhập -->
       <button class="btn btn-teal" id="btn-login" onclick="openAuthModal()"><i class="fa-solid fa-right-to-bracket"></i> Đăng nhập</button>
     </div>
   </div>
@@ -343,7 +341,7 @@
     let currentUser = null;
     let depositTimer = null;
 
-    // Switch Tabs
+    // Chuyển đổi Tab
     function switchTab(tabId) {
       document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === tabId);
@@ -356,7 +354,7 @@
       if (tabId === 'deposits') loadDepositHistory();
     }
 
-    // 1. Kiểm tra Auth
+    // 1. Kiểm tra Đăng nhập
     async function checkAuth() {
       try {
         const res = await fetch('/api/me');
@@ -379,7 +377,7 @@
       } catch(e){}
     }
 
-    // 2. Load Danh sách sản phẩm (Hiển thị ảnh Filza & Mô tả)
+    // 2. Load Danh sách Sản phẩm
     async function loadProducts() {
       const container = document.getElementById('product-list');
       try {
@@ -420,7 +418,7 @@
       }
     }
 
-    // 3. Mua sản phẩm
+    // 3. Mua Sản phẩm
     async function buyProduct(productId) {
       if (!currentUser) return openAuthModal();
       if (!confirm('Xác nhận mua sản phẩm này?')) return;
@@ -456,7 +454,7 @@
       }
     }
 
-    // 4. Lịch sử đơn hàng
+    // 4. Lịch sử Đơn hàng
     async function loadOrderHistory() {
       if (!currentUser) return;
       const tbody = document.getElementById('order-history-list');
@@ -482,7 +480,7 @@
       } catch(e) {}
     }
 
-    // 5. Lịch sử nạp tiền
+    // 5. Lịch sử Nạp tiền
     async function loadDepositHistory() {
       if (!currentUser) return;
       const tbody = document.getElementById('deposit-history-list');
@@ -507,7 +505,7 @@
       } catch(e) {}
     }
 
-    // 6. Tạo QR Nạp Tiền
+    // 6. Tạo mã QR Nạp tiền
     async function generateQR() {
       const amount = document.getElementById('deposit-amount').value;
       if (!amount || amount < 10000) return alert('Số tiền nạp tối thiểu là 10.000đ');
@@ -526,7 +524,7 @@
           document.getElementById('deposit-qr-img').src = data.qrCode || data.qr_url;
           document.getElementById('deposit-trans-code').textContent = data.transCode || data.trans_code;
 
-          // Polling kiểm tra tự động
+          // Check trạng thái nạp tự động mỗi 3 giây
           if (depositTimer) clearInterval(depositTimer);
           depositTimer = setInterval(async () => {
             const cRes = await fetch(`/api/check-deposit?code=${data.transCode || data.trans_code}`);
@@ -538,15 +536,17 @@
               checkAuth();
             }
           }, 3000);
+        } else {
+          alert(data.message || 'Lỗi tạo QR nạp tiền');
         }
-      } catch(e) { alert('Lỗi tạo mã nạp!'); }
+      } catch(e) { alert('Lỗi kết nối máy chủ!'); }
     }
 
-    // Auth & Logout
+    // Đăng nhập & Đăng xuất
     async function doAuth() {
       const u = document.getElementById('auth-user').value.trim();
       const p = document.getElementById('auth-pass').value;
-      if (!u || !p) return alert('Điền đầy đủ tài khoản & mật khẩu');
+      if (!u || !p) return alert('Điền đầy đủ thông tin');
 
       const res = await fetch('/api/auth', {
         method: 'POST',
@@ -579,7 +579,7 @@
       if (depositTimer) clearInterval(depositTimer);
     }
 
-    // Init
+    // Khởi tạo
     checkAuth();
     loadProducts();
   </script>
