@@ -45,8 +45,8 @@ export default async function handler(req, res) {
     }
 
     const amount = Number(req.body?.amount || 0);
-    if (!amount || amount < 7000) {
-      return res.status(400).json({ success: false, message: 'Số tiền tối thiểu là 7.000đ' });
+    if (!amount || amount < 2000) {
+      return res.status(400).json({ success: false, message: 'Số tiền tối thiểu là 2.000đ' });
     }
 
     // Tạo mã đơn dạng WZ + USER + RANDOM
