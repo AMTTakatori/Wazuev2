@@ -192,7 +192,7 @@
         <button class="btn btn-danger" onclick="doLogout()" title="Đăng xuất"><i class="fa-solid fa-right-from-bracket"></i></button>
       </div>
       
-      <button class="btn btn-teal" id="btn-login" onclick="openAuthModal()"><i class="fa-solid fa-right-to-bracket"></i> Đăng nhập</button>
+      <button class="btn btn-teal" id="btn-login" onclick="openAuthModal()"><i class="fa-solid fa-right-to-bracket"></i> Đăng nhập / Đăng ký</button>
     </div>
   </div>
 
@@ -320,20 +320,30 @@
     </div>
   </div>
 
-  <!-- MODAL ĐĂNG NHẬP -->
+  <!-- MODAL ĐĂNG NHẬP / ĐĂNG KÝ -->
   <div class="modal-overlay" id="modal-auth">
     <div class="modal-box">
-      <div class="modal-title"><i class="fa-solid fa-user-lock" style="color:var(--teal)"></i> Đăng Nhập / Đăng Ký</div>
+      <div class="modal-title"><i class="fa-solid fa-user-lock" style="color:var(--teal)"></i> Tài Khoản Vô Cổng</div>
       <div class="form-group">
         <label>Tên tài khoản</label>
-        <input type="text" id="auth-user" class="form-control" placeholder="Username...">
+        <input type="text" id="auth-user" class="form-control" placeholder="Tên tài khoản của bạn...">
       </div>
       <div class="form-group">
         <label>Mật khẩu</label>
         <input type="password" id="auth-pass" class="form-control" placeholder="••••••••">
       </div>
-      <button class="btn btn-teal" style="width: 100%; margin-top: 8px;" onclick="doAuth()">Đăng Nhập / Đăng Ký</button>
-      <button class="btn btn-outline" style="width: 100%; margin-top: 8px;" onclick="closeModal('modal-auth')">Hủy</button>
+      
+      <!-- 2 NÚT TÁCH BIỆT RÕ RÀNG -->
+      <div style="display: flex; gap: 10px; margin-top: 14px;">
+        <button class="btn btn-teal" style="flex: 1;" onclick="doAuth('login')">
+          <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập
+        </button>
+        <button class="btn btn-outline" style="flex: 1; border-color: var(--teal); color: var(--teal);" onclick="doAuth('register')">
+          <i class="fa-solid fa-user-plus"></i> Đăng Ký
+        </button>
+      </div>
+
+      <button class="btn btn-outline" style="width: 100%; margin-top: 10px; border-color: transparent; color: var(--muted);" onclick="closeModal('modal-auth')">Hủy bỏ</button>
     </div>
   </div>
 
@@ -505,7 +515,7 @@
       } catch(e) {}
     }
 
-    // 6. Tạo mã QR Nạp tiền
+    // 6. Tạo mã QR Nạp tiền (Số tiền tối thiểu 2.000đ)
     async function generateQR() {
       const amount = document.getElementById('deposit-amount').value;
       if (!amount || amount < 2000) return alert('Số tiền nạp tối thiểu là 2.000đ');
@@ -542,22 +552,30 @@
       } catch(e) { alert('Lỗi kết nối máy chủ!'); }
     }
 
-    // Đăng nhập & Đăng xuất
-    async function doAuth() {
+    // 7. Xử lý Đăng Nhập & Đăng Ký Tách Biệt
+    async function doAuth(action = 'login') {
       const u = document.getElementById('auth-user').value.trim();
       const p = document.getElementById('auth-pass').value;
-      if (!u || !p) return alert('Điền đầy đủ thông tin');
+      if (!u || !p) return alert('Vui lòng điền đầy đủ tên tài khoản và mật khẩu!');
 
-      const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'login', username: u, password: p })
-      });
-      const data = await res.json();
-      if (data.success) {
-        closeModal('modal-auth');
-        checkAuth();
-      } else { alert(data.message || 'Thất bại'); }
+      try {
+        const res = await fetch('/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: action, username: u, password: p })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          alert(action === 'register' ? 'Tạo tài khoản mới thành công! Hệ thống đã tự động đăng nhập.' : 'Đăng nhập thành công!');
+          closeModal('modal-auth');
+          checkAuth();
+        } else {
+          alert(data.message || (action === 'register' ? 'Đăng ký thất bại!' : 'Đăng nhập thất bại!'));
+        }
+      } catch (e) {
+        alert('Lỗi kết nối máy chủ!');
+      }
     }
 
     async function doLogout() {
