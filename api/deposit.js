@@ -21,14 +21,14 @@ async function depositHandler(req, res) {
   try {
     const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-    // 1. Lấy thông tin tài khoản đăng nhập
+    // 1. Lấy thông tin tài khoản đăng nhập từ Cookie Session
     const cookies = req.cookies || parseCookies(req);
     const token = cookies?.wazue_session;
     if (!token) {
       return res.status(401).json({ success: false, message: 'Vui lòng đăng nhập để nạp tiền' });
     }
 
-    let username = null;
+    let rawUsername = null;
     try {
       const { tokenHash } = await import('./_auth.js');
       const hash = tokenHash(token);
@@ -38,33 +38,43 @@ async function depositHandler(req, res) {
         .eq('token_hash', hash)
         .maybeSingle();
 
-      if (session) username = session.username;
+      if (session) rawUsername = session.username;
     } catch (authErr) {}
 
-    if (!username) {
+    if (!rawUsername) {
       return res.status(401).json({ success: false, message: 'Phiên đăng nhập hết hạn' });
     }
 
+    // 2. [FIX LỖI FOREIGN KEY] Tìm username chuẩn từ bảng `users` để khớp chính xác hoa/thường
+    const { data: realUser } = await supabase
+      .from('users')
+      .select('username')
+      .ilike('username', rawUsername)
+      .maybeSingle();
+
+    const targetUsername = realUser ? realUser.username : rawUsername;
+
+    // 3. Kiểm tra số tiền nạp (Tối thiểu 2.000đ)
     const { amount } = req.body || {};
     const numAmount = Number(amount);
     if (!numAmount || numAmount < 2000) {
       return res.status(400).json({ success: false, message: 'Số tiền nạp tối thiểu là 2.000đ' });
     }
 
-    // 2. Cấu hình Ngân hàng (Lấy từ biến Vercel hoặc dùng mặc định)
+    // 4. Cấu hình Ngân hàng (Lấy từ biến Vercel hoặc mặc định)
     const bankId = process.env.BANK_ID || 'MB';
     const bankAcc = process.env.BANK_ACC || '0000000000';
     const accountName = process.env.ACCOUNT_NAME || 'WAZUE STORE';
 
-    // 3. Tạo mã giao dịch ngẫu nhiên
+    // 5. Tạo mã giao dịch ngẫu nhiên
     const transCode = 'NAP' + Math.floor(100000 + Math.random() * 900000);
 
-    // 4. Tạo đường link VietQR chuẩn
+    // 6. Tạo đường link VietQR chuẩn
     const qrCode = `https://img.vietqr.io/image/${bankId}-${bankAcc}-compact2.png?amount=${numAmount}&addInfo=${transCode}&accountName=${encodeURIComponent(accountName)}`;
 
-    // 5. Lưu đơn nạp vào Supabase
+    // 7. Lưu đơn nạp vào Supabase bằng targetUsername chuẩn khớp 100% với bảng `users`
     const { error: dbError } = await supabase.from('deposits').insert([{
-      username: username.toLowerCase(),
+      username: targetUsername,
       trans_code: transCode,
       amount: numAmount,
       status: 'PENDING'
