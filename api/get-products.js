@@ -1,25 +1,26 @@
 import { createClient } from '@supabase/supabase-js';
+import { createNetlifyHandler } from './_adapter.js';
 
-export default async function handler(req, res) {
+async function getProductsHandler(req, res) {
   try {
     const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-    
-    // Lấy toàn bộ danh sách sản phẩm từ bảng products
-    const { data, error } = await supabase
+
+    // Lấy sản phẩm và sắp xếp theo sort_order tăng dần (số nhỏ xếp trước)
+    const { data: products, error } = await supabase
       .from('products')
       .select('*')
+      .order('sort_order', { ascending: true })
       .order('id', { ascending: true });
 
     if (error) {
-      console.error('Lỗi Supabase get-products:', error);
-      return res.status(500).json({ success: false, message: error.message });
+      return res.status(500).json({ error: error.message });
     }
 
-    // Trả về trực tiếp mảng sản phẩm
-    return res.status(200).json(data || []);
-
+    return res.status(200).json(products || []);
   } catch (err) {
-    console.error('Lỗi get-products:', err);
-    return res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
+
+export default getProductsHandler;
+export const handler = createNetlifyHandler(getProductsHandler);
